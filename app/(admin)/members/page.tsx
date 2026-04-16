@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdmin, SUPER_ADMIN_MEMBER_ID } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
@@ -65,7 +65,10 @@ export default async function AdminMembersPage({
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <p className="font-medium">{m.fullName}
-                    {m.role === 'admin' && <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">Admin</span>}
+                    {m.memberId === SUPER_ADMIN_MEMBER_ID
+                      ? <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-md font-medium">⭐ Super Admin</span>
+                      : m.role === 'admin' && <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">Admin</span>
+                    }
                   </p>
                   <p className="text-sm text-zinc-500">{m.email}</p>
                   {m.memberId && <p className="text-xs font-mono text-zinc-400 mt-0.5">{m.memberId}</p>}
@@ -79,7 +82,7 @@ export default async function AdminMembersPage({
                 currentEmail={m.email}
                 currentPhone={m.phone}
                 currentRole={m.role}
-                isSuperAdmin={m.memberId === 'RG-000001'}
+                isSuperAdmin={m.memberId === SUPER_ADMIN_MEMBER_ID}
               />
             </CardContent>
           </Card>

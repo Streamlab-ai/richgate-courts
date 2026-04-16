@@ -24,17 +24,21 @@ interface SendNotificationInput {
   subject: string
   body: string
   channel?: string
+  toEmail?: string    // override — used for guest bookings that have no Profile record
+  toName?: string     // display name override
 }
 
 export async function sendNotification(input: SendNotificationInput): Promise<void> {
-  const { profileId, type, subject, body, channel = 'email' } = input
+  const { profileId, type, subject, body, channel = 'email', toEmail: emailOverride, toName } = input
 
-  // Get the member's email address
-  let toEmail: string | null = null
-  try {
-    const profile = await db.profile.findUnique({ where: { id: profileId }, select: { email: true } })
-    toEmail = profile?.email ?? null
-  } catch { /* non-critical */ }
+  // Get the recipient email — use override (for guests) or look up from Profile
+  let toEmail: string | null = emailOverride ?? null
+  if (!toEmail) {
+    try {
+      const profile = await db.profile.findUnique({ where: { id: profileId }, select: { email: true } })
+      toEmail = profile?.email ?? null
+    } catch { /* non-critical */ }
+  }
 
   // Send via Resend if configured
   if (resend && toEmail) {

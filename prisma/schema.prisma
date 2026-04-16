@@ -186,17 +186,33 @@ model RecurrenceSeries {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// APP SETTINGS  (admin-editable key-value store)
+// e.g. price_per_hour_tennis = "200"
+// ─────────────────────────────────────────────────────────────────────────────
+model AppSetting {
+  key               String    @id
+  value             String
+  label             String
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  updatedByProfileId String?  @map("updated_by_profile_id")
+
+  @@map("app_settings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BOOKINGS
-// status:    'confirmed' | 'cancelled' | 'completed' | 'no_show'
-// sportType: 'tennis' | 'basketball' | 'pickleball'
+// status:      'pending_payment' | 'confirmed' | 'cancelled' | 'completed' | 'no_show'
+// sportType:   'tennis' | 'basketball' | 'pickleball'
+// isGuest:     true = non-member walk-in who pays online
+// paymentStatus: 'pending' | 'paid' | 'failed' (null for member bookings)
 // ─────────────────────────────────────────────────────────────────────────────
 model Booking {
   id                 String    @id @default(uuid())
-  memberId           String    @map("member_id")
+  memberId           String?   @map("member_id")          // null for guest bookings
   courtId            String    @map("court_id")
   sportType          String    @map("sport_type")
   date               String    // YYYY-MM-DD
-  startTime          String    @map("start_time")   // HH:MM
+  startTime          String    @map("start_time")         // HH:MM
   endTime            String    @map("end_time")
   durationMinutes    Int       @map("duration_minutes")
   status             String    @default("confirmed")
@@ -205,11 +221,20 @@ model Booking {
   qrToken            String?   @unique @map("qr_token")
   cancelledAt        DateTime? @map("cancelled_at")
   cancelReason       String?   @map("cancel_reason")
+  // ── Guest / payment fields ─────────────────────────────────────────────
+  isGuest            Boolean   @default(false) @map("is_guest")
+  guestName          String?   @map("guest_name")
+  guestEmail         String?   @map("guest_email")
+  guestPhone         String?   @map("guest_phone")
+  paymentStatus      String?   @map("payment_status")    // 'pending' | 'paid' | 'failed'
+  paymentRef         String?   @map("payment_ref")       // PayMongo source/payment ID
+  amountPaid         Int?      @map("amount_paid")       // in centavos (PHP * 100)
+  paymentExpiresAt   DateTime? @map("payment_expires_at") // slot held for 15 min
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  member             Profile          @relation(fields: [memberId], references: [id])
-  court              Court            @relation(fields: [courtId], references: [id])
+  member             Profile?          @relation(fields: [memberId], references: [id])
+  court              Court             @relation(fields: [courtId], references: [id])
   recurrenceSeries   RecurrenceSeries? @relation(fields: [recurrenceSeriesId], references: [id])
   slots              BookingSlot[]
   checkinEvents      CheckinEvent[]

@@ -21,6 +21,13 @@ export function isAdmin(profile: { role: string } | null): boolean {
   return profile?.role === 'admin'
 }
 
+// Super admin is identified by the fixed seed memberId — cannot be deleted or demoted.
+export const SUPER_ADMIN_MEMBER_ID = 'RG-000001'
+
+export function isSuperAdmin(profile: { memberId?: string | null } | null): boolean {
+  return profile?.memberId === SUPER_ADMIN_MEMBER_ID
+}
+
 export function isActiveMember(profile: { status: string } | null): boolean {
   return profile?.status === 'active'
 }
@@ -66,6 +73,18 @@ export async function requireAdmin() {
   const profile = await getProfile()
   if (!profile) redirect('/login')
   if (profile.role !== 'admin') redirect('/home')
+  return profile
+}
+
+/**
+ * requireSuperAdmin — must be the super admin (RG-000001).
+ * Regular admins are sent to /dashboard.
+ */
+export async function requireSuperAdmin() {
+  const profile = await getProfile()
+  if (!profile) redirect('/login')
+  if (profile.role !== 'admin') redirect('/home')
+  if (!isSuperAdmin(profile)) redirect('/dashboard')
   return profile
 }
 

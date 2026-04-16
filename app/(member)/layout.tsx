@@ -1,15 +1,42 @@
 import Link from 'next/link'
+import { getSession } from '@/lib/session'
+import { BRANDING } from '@/lib/branding'
 
 const NAV = [
-  { href: '/home',         label: 'Home',    icon: '🏠' },
-  { href: '/reserve',      label: 'Book',    icon: '📅' },
+  { href: '/home',         label: 'Home',        icon: '🏠' },
+  { href: '/reserve',      label: 'Book',        icon: '📅' },
   { href: '/reservations', label: 'My Bookings', icon: '🎾' },
-  { href: '/profile',      label: 'Profile', icon: '👤' },
+  { href: '/profile',      label: 'Profile',     icon: '👤' },
 ]
 
-export default function MemberLayout({ children }: { children: React.ReactNode }) {
+export default async function MemberLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession()
+  const isAdmin = session?.role === 'admin'
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f5f7]">
+      {/* Top header */}
+      <div className="sticky top-0 bg-white/80 backdrop-blur border-b border-zinc-200 z-40">
+        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">{BRANDING.icon}</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-xs font-semibold">{BRANDING.shortName}</span>
+              <span className="text-[10px] text-zinc-400">{BRANDING.subtitle}</span>
+            </div>
+          </div>
+          {isAdmin && (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white rounded-xl text-xs font-medium hover:bg-zinc-700 transition-colors"
+            >
+              <span>⚙️</span>
+              <span>Admin</span>
+            </Link>
+          )}
+        </div>
+      </div>
+
       <main className="flex-1 px-4 py-6 max-w-lg mx-auto w-full pb-24">
         {children}
       </main>

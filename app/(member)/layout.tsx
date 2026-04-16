@@ -54,6 +54,13 @@ export default async function MemberLayout({ children }: { children: React.React
               <span className="text-[10px] font-medium">Admin</span>
             </Link>
           )}
+          <a
+            href="/api/auth/logout"
+            className="flex flex-1 flex-col items-center gap-0.5 py-2 text-zinc-400 hover:text-red-500 transition-colors"
+          >
+            <span className="text-lg">🚪</span>
+            <span className="text-[10px] font-medium">Sign out</span>
+          </a>
         </div>
       </nav>
     </div>

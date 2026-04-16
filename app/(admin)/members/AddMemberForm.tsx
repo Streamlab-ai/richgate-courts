@@ -16,6 +16,7 @@ export default function AddMemberForm() {
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('active')
+  const [role, setRole] = useState('member')
 
   const reset = () => {
     setFullName('')
@@ -23,6 +24,7 @@ export default function AddMemberForm() {
     setPhone('')
     setPassword('')
     setStatus('active')
+    setRole('member')
     setError('')
     setSuccess('')
   }
@@ -42,7 +44,7 @@ export default function AddMemberForm() {
       const res = await fetch('/api/admin/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, phone, password, status }),
+        body: JSON.stringify({ fullName, email, phone, password, status, role }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -124,6 +126,18 @@ export default function AddMemberForm() {
               placeholder="Set initial password"
               className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none"
             />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-zinc-700 block mb-1">Role</label>
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none bg-white"
+            >
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
           </div>
 
           <div>

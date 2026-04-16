@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { fullName, email, phone, password, status } = await request.json()
+  const { fullName, email, phone, password, status, role } = await request.json()
 
   if (!fullName || !email || !password) {
     return NextResponse.json({ error: 'fullName, email and password are required' }, { status: 400 })
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       email,
       phone: phone || null,
       passwordHash,
-      role: 'member',
+      role: role === 'admin' ? 'admin' : 'member',
       status: status ?? 'active',
       memberId,
     },

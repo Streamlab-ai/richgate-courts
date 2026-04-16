@@ -5,7 +5,7 @@ import { BRANDING } from '@/lib/branding'
 const NAV = [
   { href: '/home',         label: 'Home',        icon: '🏠' },
   { href: '/reserve',      label: 'Book',        icon: '📅' },
-  { href: '/reservations', label: 'My Bookings', icon: '🎾' },
+  { href: '/reservations', label: 'Bookings',    icon: '🎾' },
   { href: '/profile',      label: 'Profile',     icon: '👤' },
 ]
 

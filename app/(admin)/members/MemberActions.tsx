@@ -68,7 +68,16 @@ export default function MemberActions({
     <>
       <div className="flex gap-2 flex-wrap mt-1">
         <button
-          onClick={() => { setEditOpen(true); setError('') }}
+          onClick={() => {
+            setFullName(currentFullName)
+            setEmail(currentEmail)
+            setPhone(currentPhone ?? '')
+            setStatus(currentStatus)
+            setRole(currentRole)
+            setPassword('')
+            setError('')
+            setEditOpen(true)
+          }}
           className="text-xs px-2.5 py-1 bg-zinc-100 text-zinc-700 rounded-lg hover:bg-zinc-200"
         >
           Edit

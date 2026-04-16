@@ -78,7 +78,13 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="text-center text-sm text-zinc-500 mt-6">
+        <p className="text-center text-sm text-zinc-500 mt-4">
+          <Link href="/reset-password" className="text-zinc-400 hover:text-zinc-600 transition-colors text-xs">
+            Forgot password?
+          </Link>
+        </p>
+
+        <p className="text-center text-sm text-zinc-500 mt-4">
           Not a member?{' '}
           <Link href="/register" className="text-black font-medium underline-offset-2 hover:underline">
             Request access

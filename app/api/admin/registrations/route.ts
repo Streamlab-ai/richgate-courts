@@ -53,16 +53,14 @@ export async function POST(request: NextRequest) {
     memberId = `RG-${String(count + 1).padStart(6, '0')}`
   }
 
-  await db.$transaction([
-    db.registrationRequest.update({
-      where: { id: registrationId },
-      data: { status: newStatus, notes: notes ?? null, reviewedBy: session!.sub, reviewedAt: new Date() },
-    }),
-    db.profile.update({
-      where: { id: reg.profileId },
-      data: { status: memberStatus, ...(memberId ? { memberId } : {}) },
-    }),
-  ])
+  await db.registrationRequest.update({
+    where: { id: registrationId },
+    data: { status: newStatus, notes: notes ?? null, reviewedBy: session!.sub, reviewedAt: new Date() },
+  })
+  await db.profile.update({
+    where: { id: reg.profileId },
+    data: { status: memberStatus, ...(memberId ? { memberId } : {}) },
+  })
 
   await sendNotification({
     profileId: reg.profileId,

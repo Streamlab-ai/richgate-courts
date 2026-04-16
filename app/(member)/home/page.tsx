@@ -35,6 +35,16 @@ export default async function MemberHomePage() {
         )}
       </div>
 
+      {/* Admin panel shortcut */}
+      {profile.role === 'admin' && (
+        <Link href="/dashboard">
+          <div className="bg-zinc-900 text-white rounded-2xl px-4 py-3 flex items-center justify-between mb-4 active:scale-95 transition-transform">
+            <span className="text-sm font-medium">⚙️ Admin Panel</span>
+            <span className="text-zinc-400 text-xs">→</span>
+          </div>
+        </Link>
+      )}
+
       {/* Quick actions */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <Link href="/reserve">

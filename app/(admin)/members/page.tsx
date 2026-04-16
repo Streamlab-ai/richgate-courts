@@ -15,7 +15,6 @@ export default async function AdminMembersPage({
 
   const members = await db.profile.findMany({
     where: {
-      role: 'member',
       ...(status ? { status } : {}),
       ...(search ? {
         OR: [
@@ -65,7 +64,9 @@ export default async function AdminMembersPage({
             <CardContent className="pt-4">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <p className="font-medium">{m.fullName}</p>
+                  <p className="font-medium">{m.fullName}
+                    {m.role === 'admin' && <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">Admin</span>}
+                  </p>
                   <p className="text-sm text-zinc-500">{m.email}</p>
                   {m.memberId && <p className="text-xs font-mono text-zinc-400 mt-0.5">{m.memberId}</p>}
                 </div>

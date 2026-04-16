@@ -71,7 +71,15 @@ export default async function AdminMembersPage({
                 </div>
                 {statusBadge(m.status)}
               </div>
-              <MemberActions memberId={m.id} currentStatus={m.status} />
+              <MemberActions
+                memberId={m.id}
+                currentStatus={m.status}
+                currentFullName={m.fullName}
+                currentEmail={m.email}
+                currentPhone={m.phone}
+                currentRole={m.role}
+                isSuperAdmin={m.memberId === 'RG-000001'}
+              />
             </CardContent>
           </Card>
         ))}

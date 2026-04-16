@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
 import MemberActions from './MemberActions'
+import AddMemberForm from './AddMemberForm'
 
 export default async function AdminMembersPage({
   searchParams,
@@ -29,7 +30,10 @@ export default async function AdminMembersPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold mb-6">Members</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">Members</h1>
+        <AddMemberForm />
+      </div>
 
       {/* Filters */}
       <form className="flex gap-2 mb-6">

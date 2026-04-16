@@ -37,13 +37,8 @@ export async function POST(request: NextRequest) {
       status: profile.status,
     })
 
-    // Tell the client where to redirect based on role/status
-    const redirect =
-      profile.role === 'admin'
-        ? '/dashboard'
-        : profile.status === 'active'
-        ? '/home'
-        : '/pending'
+    // All users land on /home — admins get the Admin tab from there
+    const redirect = profile.status === 'active' ? '/home' : '/pending'
 
     return NextResponse.json({ ok: true, redirect })
   } catch (err) {

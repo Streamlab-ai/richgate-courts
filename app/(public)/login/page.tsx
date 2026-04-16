@@ -42,8 +42,9 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-black rounded-2xl mb-4">
             <span className="text-white text-2xl">🎾</span>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-          <p className="text-zinc-500 text-sm mt-1">Sign in to your club account</p>
+          <h1 className="text-xl font-bold tracking-tight">Richgate Square Court</h1>
+          <p className="text-sm font-medium text-zinc-600">Reservation System</p>
+          <p className="text-zinc-400 text-xs mt-3">Sign in to your club account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -82,6 +83,13 @@ export default function LoginPage() {
           <Link href="/register" className="text-black font-medium underline-offset-2 hover:underline">
             Request access
           </Link>
+        </p>
+
+        <p className="text-center text-xs text-zinc-400 mt-10">
+          Built by{' '}
+          <a href="https://streamlabai.com" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 transition-colors">
+            StreamLab Ai
+          </a>
         </p>
       </div>
     </div>

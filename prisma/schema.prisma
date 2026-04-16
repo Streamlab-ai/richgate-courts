@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROFILES
+// role:   'member' | 'admin'
+// status: 'pending' | 'active' | 'suspended' | 'rejected'
+// ─────────────────────────────────────────────────────────────────────────────
+model Profile {
+  id           String   @id @default(uuid())
+  memberId     String?  @unique @map("member_id")         // RG-000001
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  phone        String?
+  role         String   @default("member")                // 'member' | 'admin'
+  status       String   @default("pending")               // 'pending' | 'active' | 'suspended' | 'rejected'
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  registrationRequest RegistrationRequest?
+  bookings            Booking[]
+  waitlistEntries     WaitlistEntry[]
+  checkinEvents       CheckinEvent[]
+  auditLogs           AuditLog[]
+  notifications       NotificationsLog[]
+
+  @@map("profiles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REGISTRATION REQUESTS
+// status: 'pending' | 'approved' | 'rejected'
+// ─────────────────────────────────────────────────────────────────────────────
+model RegistrationRequest {
+  id          String    @id @default(uuid())
+  profileId   String    @unique @map("profile_id")
+  status      String    @default("pending")
+  notes       String?
+  reviewedBy  String?   @map("reviewed_by")
+  reviewedAt  DateTime? @map("reviewed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("registration_requests")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COURTS
+// courtType: 'tennis' | 'multipurpose'
+// ─────────────────────────────────────────────────────────────────────────────
+model Court {
+  id          String   @id @default(uuid())
+  name        String
+  courtType   String   @map("court_type")   // 'tennis' | 'multipurpose'
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  reservableUnits  ReservableUnit[]
+  bookingSettings  BookingSettings?
+  weeklySportRules WeeklySportRule[]
+  blackoutDates    BlackoutDate[]
+  bookings         Booking[]
+
+  @@map("courts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RESERVABLE UNITS
+// unitKey:    'full' | 'pb1' | 'pb2' | 'pb3'
+// sportType:  'tennis' | 'basketball' | 'pickleball'
+// ─────────────────────────────────────────────────────────────────────────────
+model ReservableUnit {
+  id          String   @id @default(uuid())
+  courtId     String   @map("court_id")
+  unitKey     String   @map("unit_key")
+  label       String
+  sportType   String   @map("sport_type")   // 'tennis' | 'basketball' | 'pickleball'
+  capacity    Int      @default(1)           // pickleball slots = 3
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  court               Court  @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  bookingSlots        BookingSlot[]
+
+  @@unique([courtId, unitKey])
+  @@map("reservable_units")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING SETTINGS (per court)
+// ─────────────────────────────────────────────────────────────────────────────
+model BookingSettings {
+  id                      String   @id @default(uuid())
+  courtId                 String   @unique @map("court_id")
+  slotDurationMinutes     Int      @default(60)  @map("slot_duration_minutes")
+  openTimeStart           String   @default("06:00") @map("open_time_start")   // HH:MM
+  openTimeEnd             String   @default("22:00") @map("open_time_end")
+  maxAdvanceBookingDays   Int      @default(7)   @map("max_advance_booking_days")
+  maxSessionHours         Int      @default(2)   @map("max_session_hours")     // per single booking session
+  maxWeeklyHours          Int      @default(6)   @map("max_weekly_hours")
+  maxMonthlyHours         Int      @default(20)  @map("max_monthly_hours")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  court                   Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@map("booking_settings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEEKLY SPORT RULES  (multipurpose court — which sport is allowed each day)
+// dayOfWeek: 0=Sun … 6=Sat
+// sportType: 'basketball' | 'pickleball'
+// Absence of a rule = sport allowed all day during court open hours.
+// A rule restricts that sport to the given time window on that day.
+// ─────────────────────────────────────────────────────────────────────────────
+model WeeklySportRule {
+  id          String   @id @default(uuid())
+  courtId     String   @map("court_id")
+  dayOfWeek   Int      @map("day_of_week")   // 0-6
+  sportType   String   @map("sport_type")
+  startTime   String   @map("start_time")    // HH:MM
+  endTime     String   @map("end_time")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  court       Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@map("weekly_sport_rules")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLACKOUT DATES
+// ─────────────────────────────────────────────────────────────────────────────
+model BlackoutDate {
+  id        String   @id @default(uuid())
+  courtId   String   @map("court_id")
+  date      String   // YYYY-MM-DD
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  court     Court    @relation(fields: [courtId], references: [id], onDelete: Cascade)
+
+  @@unique([courtId, date])
+  @@map("blackout_dates")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECURRENCE SERIES
+// frequency: 'daily' | 'weekly' | 'custom'
+// status:    'active' | 'cancelled' | 'completed'
+// ─────────────────────────────────────────────────────────────────────────────
+model RecurrenceSeries {
+  id             String   @id @default(uuid())
+  memberId       String   @map("member_id")
+  courtId        String   @map("court_id")
+  sportType      String   @map("sport_type")
+  frequency      String   // 'daily' | 'weekly' | 'custom'
+  customWeekdays String?  @map("custom_weekdays")  // JSON: [1,3,5] (Mon/Wed/Fri)
+  startDate      String   @map("start_date")        // YYYY-MM-DD
+  endDate        String   @map("end_date")
+  startTime      String   @map("start_time")        // HH:MM
+  endTime        String   @map("end_time")
+  status         String   @default("active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  bookings       Booking[]
+
+  @@map("recurrence_series")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKINGS
+// status:    'confirmed' | 'cancelled' | 'completed' | 'no_show'
+// sportType: 'tennis' | 'basketball' | 'pickleball'
+// ─────────────────────────────────────────────────────────────────────────────
+model Booking {
+  id                 String    @id @default(uuid())
+  memberId           String    @map("member_id")
+  courtId            String    @map("court_id")
+  sportType          String    @map("sport_type")
+  date               String    // YYYY-MM-DD
+  startTime          String    @map("start_time")   // HH:MM
+  endTime            String    @map("end_time")
+  durationMinutes    Int       @map("duration_minutes")
+  status             String    @default("confirmed")
+  adminOverride      Boolean   @default(false) @map("admin_override")
+  recurrenceSeriesId String?   @map("recurrence_series_id")
+  qrToken            String?   @unique @map("qr_token")
+  cancelledAt        DateTime? @map("cancelled_at")
+  cancelReason       String?   @map("cancel_reason")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  member             Profile          @relation(fields: [memberId], references: [id])
+  court              Court            @relation(fields: [courtId], references: [id])
+  recurrenceSeries   RecurrenceSeries? @relation(fields: [recurrenceSeriesId], references: [id])
+  slots              BookingSlot[]
+  checkinEvents      CheckinEvent[]
+  waitlistEntries    WaitlistEntry[]
+
+  @@map("bookings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING SLOTS  (which reservable unit is occupied by a booking)
+// ─────────────────────────────────────────────────────────────────────────────
+model BookingSlot {
+  id               String   @id @default(uuid())
+  bookingId        String   @map("booking_id")
+  reservableUnitId String   @map("reservable_unit_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  booking          Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  reservableUnit   ReservableUnit @relation(fields: [reservableUnitId], references: [id])
+
+  @@map("booking_slots")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WAITLIST ENTRIES
+// status: 'waiting' | 'notified' | 'booked' | 'expired'
+// ─────────────────────────────────────────────────────────────────────────────
+model WaitlistEntry {
+  id         String    @id @default(uuid())
+  memberId   String    @map("member_id")
+  courtId    String    @map("court_id")
+  sportType  String    @map("sport_type")
+  date       String    // YYYY-MM-DD (the desired slot date)
+  startTime  String    @map("start_time")
+  endTime    String    @map("end_time")
+  position   Int       // queue position (1 = first)
+  status     String    @default("waiting")
+  bookingId  String?   @map("booking_id")   // populated after promotion
+  notifiedAt DateTime? @map("notified_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  member     Profile   @relation(fields: [memberId], references: [id])
+  booking    Booking?  @relation(fields: [bookingId], references: [id])
+
+  @@map("waitlist_entries")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHECK-IN EVENTS
+// method: 'qr' | 'manual'
+// ─────────────────────────────────────────────────────────────────────────────
+model CheckinEvent {
+  id          String   @id @default(uuid())
+  bookingId   String   @map("booking_id")
+  memberId    String   @map("member_id")
+  checkedInAt DateTime @default(now()) @map("checked_in_at")
+  checkedInBy String?  @map("checked_in_by")   // admin profile id (manual)
+  method      String   @default("qr")           // 'qr' | 'manual'
+
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  member      Profile  @relation(fields: [memberId], references: [id])
+
+  @@map("checkin_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATIONS LOG  (simulated — no real sending in local phase)
+// type:   'booking_confirmed' | 'booking_cancelled' | 'waitlist_joined' |
+//         'waitlist_promoted' | 'checkin_reminder' | 'recurring_summary'
+// status: 'pending' | 'sent' | 'failed'
+// ─────────────────────────────────────────────────────────────────────────────
+model NotificationsLog {
+  id        String    @id @default(uuid())
+  profileId String    @map("profile_id")
+  type      String
+  channel   String    @default("email")
+  status    String    @default("sent")       // always 'sent' in local sim
+  subject   String?
+  body      String?
+  sentAt    DateTime  @default(now()) @map("sent_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  profile   Profile   @relation(fields: [profileId], references: [id])
+
+  @@map("notifications_log")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOGS
+// ─────────────────────────────────────────────────────────────────────────────
+model AuditLog {
+  id        String   @id @default(uuid())
+  actorId   String?  @map("actor_id")
+  action    String
+  table     String   @map("table_name")
+  recordId  String   @map("record_id")
+  diff      String?  // JSON
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor     Profile? @relation(fields: [actorId], references: [id])
+
+  @@map("audit_logs")
+}

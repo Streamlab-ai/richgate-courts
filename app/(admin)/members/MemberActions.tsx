@@ -11,7 +11,9 @@ interface Props {
   currentEmail: string
   currentPhone: string | null
   currentRole: string
-  isSuperAdmin: boolean
+  isSuperAdmin: boolean       // this member IS the super admin
+  targetIsAdmin: boolean      // this member has admin role
+  viewerIsSuperAdmin: boolean // the logged-in user is super admin
 }
 
 export default function MemberActions({
@@ -22,7 +24,11 @@ export default function MemberActions({
   currentPhone,
   currentRole,
   isSuperAdmin,
+  targetIsAdmin,
+  viewerIsSuperAdmin,
 }: Props) {
+  // Password field is hidden when target is an admin and viewer is not super admin
+  const canChangePassword = !targetIsAdmin || viewerIsSuperAdmin
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -132,16 +138,22 @@ export default function MemberActions({
                 />
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-zinc-700 block mb-1">New Password <span className="text-zinc-400 font-normal">(leave blank to keep current)</span></label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none"
-                />
-              </div>
+              {canChangePassword ? (
+                <div>
+                  <label className="text-sm font-medium text-zinc-700 block mb-1">New Password <span className="text-zinc-400 font-normal">(leave blank to keep current)</span></label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none"
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-400">
+                  🔒 Password changes for admin accounts require super admin access
+                </div>
+              )}
 
               <div>
                 <label className="text-sm font-medium text-zinc-700 block mb-1">Role</label>

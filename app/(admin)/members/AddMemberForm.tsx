@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 
-export default function AddMemberForm() {
+export default function AddMemberForm({ viewerIsSuperAdmin }: { viewerIsSuperAdmin: boolean }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -136,7 +136,7 @@ export default function AddMemberForm() {
               className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none bg-white"
             >
               <option value="member">Member</option>
-              <option value="admin">Admin</option>
+              {viewerIsSuperAdmin && <option value="admin">Admin</option>}
             </select>
           </div>
 

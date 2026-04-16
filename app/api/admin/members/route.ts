@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { SUPER_ADMIN_MEMBER_ID } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const session = await getSession()
@@ -43,6 +44,14 @@ export async function POST(request: NextRequest) {
 
   if (!fullName || !email || !password) {
     return NextResponse.json({ error: 'fullName, email and password are required' }, { status: 400 })
+  }
+
+  // Only super admin can create admin accounts
+  if (role === 'admin') {
+    const me = await db.profile.findUnique({ where: { id: session.sub }, select: { memberId: true } })
+    if (me?.memberId !== SUPER_ADMIN_MEMBER_ID) {
+      return NextResponse.json({ error: 'Only the super admin can create admin accounts' }, { status: 403 })
+    }
   }
 
   const existing = await db.profile.findUnique({ where: { email } })

@@ -16,8 +16,8 @@ export async function PATCH(
   const { id } = await params
   const { status, fullName, email, phone, role, password } = await request.json()
 
-  // Identify super admin target
-  const target = await db.profile.findUnique({ where: { id }, select: { memberId: true } })
+  // Identify target
+  const target = await db.profile.findUnique({ where: { id }, select: { memberId: true, role: true } })
   const targetIsSuperAdmin = target?.memberId === SUPER_ADMIN_MEMBER_ID
 
   // Identify calling admin
@@ -32,6 +32,11 @@ export async function PATCH(
   // Only super admin can promote another user to admin
   if (role === 'admin' && !callerIsSuperAdmin) {
     return NextResponse.json({ error: 'Only the super admin can grant admin access' }, { status: 403 })
+  }
+
+  // Admins cannot change the password of other admins or the super admin — only super admin can
+  if (password && target?.role === 'admin' && !callerIsSuperAdmin) {
+    return NextResponse.json({ error: 'Only the super admin can change another admin\'s password' }, { status: 403 })
   }
 
   // Check email uniqueness if changing

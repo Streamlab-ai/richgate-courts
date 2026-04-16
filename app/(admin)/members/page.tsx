@@ -10,7 +10,8 @@ export default async function AdminMembersPage({
 }: {
   searchParams: Promise<{ search?: string; status?: string }>
 }) {
-  await requireAdmin()
+  const me = await requireAdmin()
+  const viewerIsSuperAdmin = me.memberId === SUPER_ADMIN_MEMBER_ID
   const { search = '', status } = await searchParams
 
   const members = await db.profile.findMany({
@@ -31,7 +32,7 @@ export default async function AdminMembersPage({
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Members</h1>
-        <AddMemberForm />
+        <AddMemberForm viewerIsSuperAdmin={viewerIsSuperAdmin} />
       </div>
 
       {/* Filters */}
@@ -83,6 +84,8 @@ export default async function AdminMembersPage({
                 currentPhone={m.phone}
                 currentRole={m.role}
                 isSuperAdmin={m.memberId === SUPER_ADMIN_MEMBER_ID}
+                targetIsAdmin={m.role === 'admin'}
+                viewerIsSuperAdmin={viewerIsSuperAdmin}
               />
             </CardContent>
           </Card>

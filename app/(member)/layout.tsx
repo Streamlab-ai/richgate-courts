@@ -25,15 +25,6 @@ export default async function MemberLayout({ children }: { children: React.React
               <span className="text-[10px] text-zinc-400">{BRANDING.subtitle}</span>
             </div>
           </div>
-          {isAdmin && (
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 text-white rounded-xl text-xs font-medium hover:bg-zinc-700 transition-colors"
-            >
-              <span>⚙️</span>
-              <span>Admin</span>
-            </Link>
-          )}
         </div>
       </div>
 
@@ -54,6 +45,15 @@ export default async function MemberLayout({ children }: { children: React.React
               <span className="text-[10px] font-medium">{item.label}</span>
             </Link>
           ))}
+          {isAdmin && (
+            <Link
+              href="/dashboard"
+              className="flex flex-1 flex-col items-center gap-0.5 py-2 text-zinc-500 hover:text-black transition-colors"
+            >
+              <span className="text-lg">⚙️</span>
+              <span className="text-[10px] font-medium">Admin</span>
+            </Link>
+          )}
         </div>
       </nav>
     </div>

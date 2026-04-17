@@ -110,11 +110,11 @@ export async function runStartup() {
       NOW(),
       NOW()
     FROM (VALUES
-      (1,'06:00','14:00'),
-      (2,'06:00','14:00'),
-      (3,'06:00','14:00'),
-      (4,'06:00','14:00'),
-      (5,'06:00','14:00'),
+      (1,'06:00','12:00'),
+      (2,'06:00','12:00'),
+      (3,'06:00','12:00'),
+      (4,'06:00','12:00'),
+      (5,'06:00','12:00'),
       (0,'06:00','18:00'),
       (6,'06:00','18:00')
     ) AS g(dow, t_start, t_end)
@@ -127,7 +127,18 @@ export async function runStartup() {
     )
   `)
 
-  // ── 11. Migrate legacy role values ───────────────────────────────────────────
+  // ── 11. Fix BPTL Mon-Fri end time: 14:00 → 12:00 ─────────────────────────────
+  await step('fix BPTL Mon-Fri end time to 12:00', () => db.$executeRaw`
+    UPDATE weekly_sport_rules
+    SET    end_time = '12:00', updated_at = NOW()
+    WHERE  court_id   = '00000000-0000-0000-0001-000000000001'
+      AND  sport_type = 'tennis'
+      AND  booker_type = 'bptl'
+      AND  day_of_week IN (1,2,3,4,5)
+      AND  end_time = '14:00'
+  `)
+
+  // ── 12. Migrate legacy role values ───────────────────────────────────────────
   await step('migrate role: member→bptl', () => db.$executeRaw`
     UPDATE profiles SET role = 'bptl'
     WHERE role = 'member' AND member_type = 'bptl'

@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose'
 // ROUTE CLASSIFICATION
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PUBLIC_ROUTES  = ['/login', '/register', '/reset-password']
+const PUBLIC_ROUTES  = ['/login', '/register', '/reset-password', '/book']
 const MEMBER_ROUTES  = ['/home', '/reserve', '/reservations', '/profile']
 const ADMIN_ROUTES   = [
   '/dashboard', '/registrations', '/members', '/bookings',

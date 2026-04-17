@@ -12,6 +12,7 @@ const ADMIN_ROUTES   = [
   '/waitlists', '/recurring', '/settings', '/blackout-dates',
   '/sport-rules', '/checkin', '/reports',
 ]
+const GUARD_ROUTES   = ['/guard']
 
 function matchesRoute(pathname: string, routes: string[]): boolean {
   return routes.some((r) => pathname === r || pathname.startsWith(r + '/'))
@@ -26,6 +27,7 @@ interface SessionPayload {
   email: string
   role: string
   status: string
+  memberType?: string
 }
 
 async function getSessionFromRequest(request: NextRequest): Promise<SessionPayload | null> {
@@ -63,7 +65,25 @@ export async function proxy(request: NextRequest) {
 
   // Public routes — send logged-in users away
   if (matchesRoute(pathname, PUBLIC_ROUTES)) {
-    if (session) return NextResponse.redirect(new URL('/home', request.url))
+    if (session) {
+      const dest = session.role === 'admin' ? '/dashboard'
+                 : session.role === 'guard'  ? '/guard'
+                 : '/home'
+      return NextResponse.redirect(new URL(dest, request.url))
+    }
+    return NextResponse.next()
+  }
+
+  // Guard routes
+  if (matchesRoute(pathname, GUARD_ROUTES)) {
+    if (!session) {
+      const loginUrl = new URL('/login', request.url)
+      loginUrl.searchParams.set('next', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    if (session.role !== 'guard' && session.role !== 'admin') {
+      return NextResponse.redirect(new URL('/home', request.url))
+    }
     return NextResponse.next()
   }
 

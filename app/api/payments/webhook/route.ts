@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
   // Find the booking by its PayMongo source reference
   const booking = await db.booking.findFirst({
     where: { paymentRef: sourceId, status: 'pending_payment' },
+    include: { member: { select: { email: true, fullName: true } } },
   })
 
   if (!booking) {
@@ -59,10 +60,12 @@ export async function POST(request: NextRequest) {
     data:  { status: 'confirmed', paymentStatus: 'paid' },
   })
 
-  // Send confirmation email via Resend
-  if (booking.guestEmail && booking.guestName) {
-    try {
-      const { sendNotification } = await import('@/services/notifications')
+  // Send confirmation email
+  try {
+    const { sendNotification } = await import('@/services/notifications')
+
+    if (booking.guestEmail && booking.guestName) {
+      // Guest booking
       await sendNotification({
         profileId: booking.id,             // no real profileId — guest booking
         toEmail:   booking.guestEmail!,    // direct override
@@ -86,9 +89,36 @@ export async function POST(request: NextRequest) {
         ].join('\n'),
         channel: 'email',
       })
-    } catch (err) {
-      console.error('[payments/webhook] Email send error:', err)
+    } else if (booking.memberId && (booking as { member?: { email: string; fullName: string } | null }).member?.email) {
+      // BPTL member booking
+      const memberEmail = (booking as { member?: { email: string; fullName: string } | null }).member!.email
+      const memberName  = (booking as { member?: { email: string; fullName: string } | null }).member!.fullName
+      await sendNotification({
+        profileId: booking.memberId,
+        toEmail:   memberEmail,
+        toName:    memberName,
+        type: 'booking_confirmed',
+        subject: '✅ Your court booking is confirmed!',
+        body: [
+          `Hi ${memberName},`,
+          ``,
+          `Your booking is confirmed. Here are your details:`,
+          ``,
+          `Court booking ID: ${booking.id.slice(0, 8).toUpperCase()}`,
+          `Date: ${booking.date}`,
+          `Time: ${booking.startTime} – ${booking.endTime}`,
+          `Sport: ${booking.sportType.charAt(0).toUpperCase() + booking.sportType.slice(1)}`,
+          `Amount paid: ₱${(booking.amountPaid ?? 0) / 100}`,
+          ``,
+          `Please show your QR code to security for check-in.`,
+          ``,
+          `See you on the court!`,
+        ].join('\n'),
+        channel: 'email',
+      })
     }
+  } catch (err) {
+    console.error('[payments/webhook] Email send error:', err)
   }
 
   return NextResponse.json({ ok: true })

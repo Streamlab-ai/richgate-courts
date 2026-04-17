@@ -13,8 +13,9 @@ function getSecret(): Uint8Array {
 export interface SessionPayload {
   sub: string   // profile id
   email: string
-  role: string  // 'member' | 'admin'
+  role: string  // 'member' | 'admin' | 'guard'
   status: string
+  memberType: string  // 'hoa' | 'bptl'
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

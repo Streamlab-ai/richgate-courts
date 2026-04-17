@@ -64,6 +64,28 @@ export async function runStartup() {
         AND  (member_id IS NULL OR member_id != 'RG-000001')
     `
 
+    // ── 6. Add member_type to profiles ───────────────────────────────────────
+    await db.$executeRaw`
+      ALTER TABLE profiles ADD COLUMN IF NOT EXISTS member_type TEXT NOT NULL DEFAULT 'hoa'
+    `
+
+    // ── 7. Add booker_type to bookings ────────────────────────────────────────
+    await db.$executeRaw`
+      ALTER TABLE bookings ADD COLUMN IF NOT EXISTS booker_type TEXT
+    `
+
+    // ── 8. Add booker_type to weekly_sport_rules ──────────────────────────────
+    await db.$executeRaw`
+      ALTER TABLE weekly_sport_rules ADD COLUMN IF NOT EXISTS booker_type TEXT
+    `
+
+    // ── 9. Seed BPTL app setting default ─────────────────────────────────────
+    await db.$executeRaw`
+      INSERT INTO app_settings (key, label, value) VALUES
+        ('price_per_day_bptl_tennis', 'BPTL Tennis — Daily Access Rate (₱)', '100')
+      ON CONFLICT (key) DO NOTHING
+    `
+
     console.log('[startup] ✅ Schema + seed checks complete')
   } catch (err) {
     // Non-fatal — log and continue. App still works; fixes will retry next cold start.

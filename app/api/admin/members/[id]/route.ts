@@ -14,7 +14,7 @@ export async function PATCH(
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params
-  const { status, fullName, email, phone, role, password } = await request.json()
+  const { status, fullName, email, phone, role, password, memberType } = await request.json()
 
   // Identify target
   const target = await db.profile.findUnique({ where: { id }, select: { memberId: true, role: true } })
@@ -29,7 +29,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'The super admin role and status cannot be changed' }, { status: 403 })
   }
 
-  // Only super admin can promote another user to admin
+  // Only super admin can promote another user to admin (guard role allowed for any admin)
   if (role === 'admin' && !callerIsSuperAdmin) {
     return NextResponse.json({ error: 'Only the super admin can grant admin access' }, { status: 403 })
   }
@@ -52,6 +52,7 @@ export async function PATCH(
   if (status && !targetIsSuperAdmin) data.status = status
   if (role   && !targetIsSuperAdmin) data.role   = role
   if (password)            data.passwordHash = await bcrypt.hash(password, 12)
+  if (memberType !== undefined && role === 'member') data.memberType = memberType
 
   const updated = await db.profile.update({ where: { id }, data })
   return NextResponse.json({ ok: true, member: updated })

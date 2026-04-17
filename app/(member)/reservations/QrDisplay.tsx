@@ -1,32 +1,23 @@
 'use client'
-
 import { useState } from 'react'
 
-export default function QrDisplay({ token }: { token: string }) {
-  const [show, setShow] = useState(false)
+interface Props { qrDataUrl: string; token: string }
 
+export default function QrDisplay({ qrDataUrl, token }: Props) {
+  const [show, setShow] = useState(false)
   return (
     <div className="mb-3">
       <button
-        onClick={() => setShow(!show)}
-        className="text-xs text-blue-600 hover:underline"
+        onClick={() => setShow(s => !s)}
+        className="text-xs text-zinc-500 underline-offset-2 hover:underline"
       >
-        {show ? 'Hide QR' : 'Show QR code'}
+        {show ? 'Hide QR code' : 'Show QR code'}
       </button>
       {show && (
-        <div className="mt-2 p-3 bg-zinc-50 rounded-xl flex flex-col items-center gap-2">
-          {/* QR visual simulation — token displayed as monospace code */}
-          <div className="grid grid-cols-8 gap-0.5">
-            {Array.from(token).map((char, i) => (
-              <div
-                key={i}
-                className="w-5 h-5 rounded-sm"
-                style={{ backgroundColor: parseInt(char, 36) % 2 === 0 ? '#000' : '#fff', border: '1px solid #e5e5e5' }}
-              />
-            ))}
-          </div>
-          <p className="font-mono text-sm font-medium tracking-widest">{token}</p>
-          <p className="text-xs text-zinc-400">Show this to staff for check-in</p>
+        <div className="mt-3 flex flex-col items-center gap-2">
+          <img src={qrDataUrl} alt="Check-in QR code" className="w-40 h-40 rounded-lg" />
+          <p className="text-[10px] font-mono text-zinc-400 break-all text-center max-w-[160px]">{token}</p>
+          <p className="text-xs text-zinc-500">Show this to security for check-in</p>
         </div>
       )}
     </div>

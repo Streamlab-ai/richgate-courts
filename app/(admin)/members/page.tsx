@@ -65,10 +65,17 @@ export default async function AdminMembersPage({
             <CardContent className="pt-4">
               <div className="flex justify-between items-start mb-2">
                 <div>
-                  <p className="font-medium">{m.fullName}
+                  <p className="font-medium flex flex-wrap items-center gap-1">
+                    {m.fullName}
                     {m.memberId === SUPER_ADMIN_MEMBER_ID
-                      ? <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-md font-medium">⭐ Super Admin</span>
-                      : m.role === 'admin' && <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">Admin</span>
+                      ? <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-md font-medium">⭐ Super Admin</span>
+                      : m.role === 'admin'
+                        ? <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">Admin</span>
+                        : m.role === 'guard'
+                          ? <span className="text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-md font-medium">Guard</span>
+                          : (m as { memberType?: string }).memberType === 'bptl'
+                            ? <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md font-medium">BPTL</span>
+                            : <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium">HOA</span>
                     }
                   </p>
                   <p className="text-sm text-zinc-500">{m.email}</p>
@@ -83,6 +90,7 @@ export default async function AdminMembersPage({
                 currentEmail={m.email}
                 currentPhone={m.phone}
                 currentRole={m.role}
+                currentMemberType={(m as { memberType?: string }).memberType ?? 'hoa'}
                 isSuperAdmin={m.memberId === SUPER_ADMIN_MEMBER_ID}
                 targetIsAdmin={m.role === 'admin'}
                 viewerIsSuperAdmin={viewerIsSuperAdmin}

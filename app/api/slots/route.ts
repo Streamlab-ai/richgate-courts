@@ -1,6 +1,7 @@
 // GET /api/slots?courtId=&sportType=&date=
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
+import { db } from '@/lib/db'
 import { generateSlots } from '@/services/booking/generate-slots'
 import type { SportType } from '@/services/booking/types'
 
@@ -17,6 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'courtId, sportType, and date are required' }, { status: 400 })
   }
 
-  const slots = await generateSlots(courtId, sportType, date)
+  const profile = await db.profile.findUnique({ where: { id: session.sub }, select: { memberType: true } })
+  const callerMemberType = (profile?.memberType ?? 'hoa') as 'hoa' | 'bptl'
+  const slots = await generateSlots(courtId, sportType, date, callerMemberType)
   return NextResponse.json({ slots })
 }

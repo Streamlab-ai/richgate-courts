@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json()
-  const { courtId, dayOfWeek, sportType, startTime, endTime } = body
+  const { courtId, dayOfWeek, sportType, startTime, endTime, bookerType } = body
 
   if (!courtId || dayOfWeek === undefined || !sportType || !startTime || !endTime) {
     return NextResponse.json({ error: 'courtId, dayOfWeek, sportType, startTime, endTime are required' }, { status: 400 })
@@ -46,8 +46,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'startTime and endTime must be HH:MM' }, { status: 400 })
   }
 
+  const resolvedBookerType = bookerType === 'bptl' ? 'bptl' : null
+
   const rule = await db.weeklySportRule.create({
-    data: { courtId, dayOfWeek: Number(dayOfWeek), sportType, startTime, endTime, isActive: true },
+    data: { courtId, dayOfWeek: Number(dayOfWeek), sportType, startTime, endTime, isActive: true, bookerType: resolvedBookerType },
   })
 
   return NextResponse.json({ ok: true, rule }, { status: 201 })

@@ -10,7 +10,7 @@ datasource db {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROFILES
-// role:   'member' | 'admin'
+// role:   'member' | 'admin' | 'guard'
 // status: 'pending' | 'active' | 'suspended' | 'rejected'
 // ─────────────────────────────────────────────────────────────────────────────
 model Profile {
@@ -20,7 +20,8 @@ model Profile {
   passwordHash String   @map("password_hash")
   fullName     String   @map("full_name")
   phone        String?
-  role         String   @default("member")                // 'member' | 'admin'
+  memberType   String   @default("hoa") @map("member_type")   // 'hoa' | 'bptl'
+  role         String   @default("member")                // 'member' | 'admin' | 'guard'
   status       String   @default("pending")               // 'pending' | 'active' | 'suspended' | 'rejected'
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -135,6 +136,7 @@ model WeeklySportRule {
   startTime   String   @map("start_time")    // HH:MM
   endTime     String   @map("end_time")
   isActive    Boolean  @default(true) @map("is_active")
+  bookerType  String?  @map("booker_type")   // null = open | 'bptl' = BPTL only
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -226,10 +228,11 @@ model Booking {
   guestName          String?   @map("guest_name")
   guestEmail         String?   @map("guest_email")
   guestPhone         String?   @map("guest_phone")
-  paymentStatus      String?   @map("payment_status")    // 'pending' | 'paid' | 'failed'
+  paymentStatus      String?   @map("payment_status")    // 'pending' | 'paid' | 'failed' | 'free_bptl'
   paymentRef         String?   @map("payment_ref")       // PayMongo source/payment ID
   amountPaid         Int?      @map("amount_paid")       // in centavos (PHP * 100)
   paymentExpiresAt   DateTime? @map("payment_expires_at") // slot held for 15 min
+  bookerType         String?   @map("booker_type")       // 'hoa' | 'bptl' | 'guest'
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
 

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
 import CancelBookingButton from './CancelBookingButton'
 import QrDisplay from './QrDisplay'
+import QRCode from 'qrcode'
 
 export default async function MyReservationsPage() {
   const profile = await requireActiveMember()
@@ -22,6 +23,14 @@ export default async function MyReservationsPage() {
       take: 20,
     }),
   ])
+
+  // Generate real QR data URLs for upcoming bookings with tokens
+  const qrDataUrls: Record<string, string> = {}
+  for (const b of upcoming) {
+    if (b.qrToken) {
+      qrDataUrls[b.id] = await QRCode.toDataURL(b.qrToken, { width: 200, margin: 2 })
+    }
+  }
 
   const waitlist = await db.waitlistEntry.findMany({
     where: { memberId: profile.id, status: 'waiting' },
@@ -57,7 +66,7 @@ export default async function MyReservationsPage() {
                   </div>
 
                   {/* QR Token */}
-                  {b.qrToken && <QrDisplay token={b.qrToken} />}
+                  {b.qrToken && qrDataUrls[b.id] && <QrDisplay qrDataUrl={qrDataUrls[b.id]} token={b.qrToken} />}
 
                   <CancelBookingButton bookingId={b.id} />
                 </CardContent>

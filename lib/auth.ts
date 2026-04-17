@@ -32,6 +32,24 @@ export function isActiveMember(profile: { status: string } | null): boolean {
   return profile?.status === 'active'
 }
 
+export function isBptlMember(profile: { memberType?: string | null } | null): boolean {
+  return profile?.memberType === 'bptl'
+}
+
+export function isGuard(profile: { role: string } | null): boolean {
+  return profile?.role === 'guard'
+}
+
+/**
+ * requireGuardOrAdmin — must be guard or admin.
+ */
+export async function requireGuardOrAdmin() {
+  const profile = await getProfile()
+  if (!profile) redirect('/login')
+  if (profile.role !== 'admin' && profile.role !== 'guard') redirect('/home')
+  return profile
+}
+
 export function isPending(profile: { status: string } | null): boolean {
   return profile?.status === 'pending'
 }
@@ -96,6 +114,7 @@ export async function requireGuest(): Promise<void> {
   const profile = await getProfile()
   if (!profile) return
 
+  if (profile.role === 'guard') redirect('/guard')
   if (profile.role === 'admin') redirect('/dashboard')
   if (profile.status === 'active') redirect('/home')
   if (profile.status === 'pending') redirect('/pending')

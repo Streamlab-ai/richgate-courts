@@ -11,6 +11,7 @@ interface Props {
   initialFees: Fee[]
   monetizationEnabled: boolean
   isSuperAdmin: boolean
+  bptlTennisRate: number
 }
 
 const SPORT_ICON: Record<string, string> = {
@@ -19,13 +20,14 @@ const SPORT_ICON: Record<string, string> = {
   price_per_hour_basketball: '🏀',
 }
 
-export default function CourtFeesForm({ initialFees, monetizationEnabled: initEnabled, isSuperAdmin }: Props) {
+export default function CourtFeesForm({ initialFees, monetizationEnabled: initEnabled, isSuperAdmin, bptlTennisRate: initBptlRate }: Props) {
   const router = useRouter()
-  const [enabled, setEnabled]   = useState(initEnabled)
-  const [fees, setFees]         = useState<Fee[]>(initialFees)
-  const [loading, setLoading]   = useState(false)
-  const [saved, setSaved]       = useState(false)
-  const [error, setError]       = useState('')
+  const [enabled, setEnabled]       = useState(initEnabled)
+  const [fees, setFees]             = useState<Fee[]>(initialFees)
+  const [bptlRate, setBptlRate]     = useState(initBptlRate)
+  const [loading, setLoading]       = useState(false)
+  const [saved, setSaved]           = useState(false)
+  const [error, setError]           = useState('')
 
   function updateFee(key: string, raw: string) {
     setSaved(false)
@@ -45,6 +47,7 @@ export default function CourtFeesForm({ initialFees, monetizationEnabled: initEn
             // Only include monetization toggle if caller is super admin
             ...(isSuperAdmin ? [{ key: 'monetization_enabled', value: String(enabled) }] : []),
             ...fees.map(f => ({ key: f.key, value: String(f.value) })),
+            { key: 'price_per_day_bptl_tennis', value: String(bptlRate) },
           ],
         }),
       })
@@ -136,6 +139,30 @@ export default function CourtFeesForm({ initialFees, monetizationEnabled: initEn
                 </div>
               </label>
             ))}
+          </div>
+
+          {/* BPTL Rates */}
+          <div className="flex flex-col gap-4">
+            <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">BPTL Rates</p>
+            <label className="flex items-center justify-between gap-4">
+              <span className="text-sm text-zinc-700 flex items-center gap-2">
+                <span>🎾</span>
+                BPTL Tennis — Daily Access Rate
+              </span>
+              <div className="flex items-center gap-1">
+                <span className="text-sm text-zinc-400">₱</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={10}
+                  value={bptlRate}
+                  onChange={e => { setBptlRate(Number(e.target.value) || 0); setSaved(false) }}
+                  className="w-24 px-3 py-2 border border-zinc-200 rounded-xl text-sm text-right outline-none focus:ring-2 focus:ring-black bg-white"
+                />
+                <span className="text-xs text-zinc-400">/day</span>
+              </div>
+            </label>
+            <p className="text-xs text-zinc-400">Multipurpose court uses standard non-member rates above for BPTL members.</p>
           </div>
 
           {error && <p className="text-sm text-red-500 bg-red-50 px-4 py-2 rounded-xl">{error}</p>}

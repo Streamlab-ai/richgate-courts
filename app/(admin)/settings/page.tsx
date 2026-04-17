@@ -9,7 +9,7 @@ const FEE_KEYS = [
   { key: 'price_per_hour_basketball',  label: 'Basketball — Price per Hour (₱)',  default: 400 },
 ]
 
-const ALL_SETTING_KEYS = ['monetization_enabled', ...FEE_KEYS.map(f => f.key)]
+const ALL_SETTING_KEYS = ['monetization_enabled', ...FEE_KEYS.map(f => f.key), 'price_per_day_bptl_tennis']
 
 export default async function AdminSettingsPage() {
   const me = await requireAdmin()
@@ -23,6 +23,7 @@ export default async function AdminSettingsPage() {
 
   const settingMap = Object.fromEntries(settingRows.map(r => [r.key, r.value]))
   const monetizationEnabled = (settingMap['monetization_enabled'] ?? 'false') === 'true'
+  const bptlTennisRate = Number(settingMap['price_per_day_bptl_tennis'] ?? 100)
 
   // Merge DB values with defaults (in case some keys aren't seeded yet)
   const initialFees = FEE_KEYS.map(f => ({
@@ -44,6 +45,7 @@ export default async function AdminSettingsPage() {
           initialFees={initialFees}
           monetizationEnabled={monetizationEnabled}
           isSuperAdmin={currentUserIsSuperAdmin}
+          bptlTennisRate={bptlTennisRate}
         />
 
         <hr className="border-zinc-200" />

@@ -102,6 +102,7 @@ async function main() {
     { key: 'price_per_hour_tennis',     value: '200',   label: 'Tennis — Price per Hour (₱)' },
     { key: 'price_per_hour_pickleball', value: '200',   label: 'Pickleball — Price per Hour (₱)' },
     { key: 'price_per_hour_basketball', value: '400',   label: 'Basketball — Price per Hour (₱)' },
+    { key: 'price_per_day_bptl_tennis', value: '100',   label: 'BPTL Tennis — Daily Access Rate (₱)' },
   ]
 
   for (const s of appSettingDefaults) {

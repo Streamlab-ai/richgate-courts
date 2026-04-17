@@ -8,7 +8,7 @@ import type { SportType, TimeSlot } from '@/services/booking/types'
 
 export async function GET(request: NextRequest) {
   const session = await getSession()
-  if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!session || (session.role !== 'admin' && session.role !== 'guard')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { searchParams } = request.nextUrl
   const date    = searchParams.get('date') ?? undefined
@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession()
+  // POST is admin-only; guards get read-only access
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await request.json()

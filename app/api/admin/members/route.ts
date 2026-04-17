@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session || session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { fullName, email, phone, password, status, role } = await request.json()
+  const { fullName, email, phone, password, status, role, memberType } = await request.json()
 
   if (!fullName || !email || !password) {
     return NextResponse.json({ error: 'fullName, email and password are required' }, { status: 400 })
   }
 
-  // Only super admin can create admin accounts
+  // Only super admin can create admin accounts (guard allowed for any admin)
   if (role === 'admin') {
     const me = await db.profile.findUnique({ where: { id: session.sub }, select: { memberId: true } })
     if (me?.memberId !== SUPER_ADMIN_MEMBER_ID) {
@@ -67,15 +67,18 @@ export async function POST(request: NextRequest) {
 
   const passwordHash = await bcrypt.hash(password, 12)
 
+  const resolvedRole = role === 'admin' ? 'admin' : role === 'guard' ? 'guard' : 'member'
+
   const member = await db.profile.create({
     data: {
       fullName,
       email,
       phone: phone || null,
       passwordHash,
-      role: role === 'admin' ? 'admin' : 'member',
+      role: resolvedRole,
       status: status ?? 'active',
       memberId,
+      memberType: resolvedRole === 'member' ? (memberType ?? 'hoa') : 'hoa',
     },
     select: { id: true, memberId: true, fullName: true, email: true, status: true },
   })

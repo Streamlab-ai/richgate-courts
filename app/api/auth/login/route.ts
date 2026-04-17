@@ -35,10 +35,18 @@ export async function POST(request: NextRequest) {
       email: profile.email,
       role: profile.role,
       status: profile.status,
+      memberType: (profile as { memberType?: string }).memberType ?? 'hoa',
     })
 
-    // All users land on /home — admins get the Admin tab from there
-    const redirect = profile.status === 'active' ? '/home' : '/pending'
+    // Route by role
+    let redirect: string
+    if (profile.role === 'guard') {
+      redirect = '/guard'
+    } else if (profile.role === 'admin') {
+      redirect = '/dashboard'
+    } else {
+      redirect = profile.status === 'active' ? '/home' : '/pending'
+    }
 
     return NextResponse.json({ ok: true, redirect })
   } catch (err) {

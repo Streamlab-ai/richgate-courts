@@ -14,6 +14,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'courtId, sportType, and date are required' }, { status: 400 })
   }
 
-  const slots = await generateSlots(courtId, sportType, date)
+  const slots = await generateSlots(courtId, sportType, date, 'guest')
   return NextResponse.json({ slots })
 }

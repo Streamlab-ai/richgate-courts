@@ -14,6 +14,7 @@ interface Rule {
   startTime: string
   endTime: string
   isActive: boolean
+  bookerType?: string | null
 }
 
 interface Props {
@@ -47,13 +48,14 @@ export default function SportRulesManager({ courts, initialRules }: Props) {
   const [rules, setRules] = useState<Rule[]>(initialRules)
 
   // Form state
-  const [courtId,   setCourtId]   = useState(courts[0]?.id ?? '')
-  const [day,       setDay]       = useState(1) // Monday default
-  const [sport,     setSport]     = useState('basketball')
-  const [startTime, setStartTime] = useState('06:00')
-  const [endTime,   setEndTime]   = useState('12:00')
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
+  const [courtId,    setCourtId]    = useState(courts[0]?.id ?? '')
+  const [day,        setDay]        = useState(1) // Monday default
+  const [sport,      setSport]      = useState('basketball')
+  const [startTime,  setStartTime]  = useState('06:00')
+  const [endTime,    setEndTime]    = useState('12:00')
+  const [bptlOnly,   setBptlOnly]   = useState(false)
+  const [loading,    setLoading]    = useState(false)
+  const [error,      setError]      = useState('')
 
   // Per-rule action state
   const [toggling, setToggling] = useState<string | null>(null)
@@ -67,7 +69,7 @@ export default function SportRulesManager({ courts, initialRules }: Props) {
       const res = await fetch('/api/admin/sport-rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courtId, dayOfWeek: day, sportType: sport, startTime, endTime }),
+        body: JSON.stringify({ courtId, dayOfWeek: day, sportType: sport, startTime, endTime, bookerType: bptlOnly ? 'bptl' : null }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to add rule'); return }
@@ -78,6 +80,7 @@ export default function SportRulesManager({ courts, initialRules }: Props) {
           a.dayOfWeek - b.dayOfWeek || a.sportType.localeCompare(b.sportType) || a.startTime.localeCompare(b.startTime)
         )
       )
+      setBptlOnly(false)
     } finally {
       setLoading(false)
     }
@@ -217,6 +220,19 @@ export default function SportRulesManager({ courts, initialRules }: Props) {
               </label>
             </div>
 
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={bptlOnly}
+                onChange={e => setBptlOnly(e.target.checked)}
+                className="w-4 h-4 rounded accent-emerald-600"
+              />
+              <div>
+                <span className="text-sm font-medium text-zinc-700">BPTL members only</span>
+                <p className="text-xs text-zinc-400">Restrict this time window to BPTL members — HOA and guests will see it as unavailable</p>
+              </div>
+            </label>
+
             {error && <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
             <Button type="submit" loading={loading} className="mt-1">
@@ -252,7 +268,12 @@ export default function SportRulesManager({ courts, initialRules }: Props) {
                             <div className="flex items-center gap-3 min-w-0">
                               <span className="text-lg shrink-0">{sportIcon(rule.sportType)}</span>
                               <div className="min-w-0">
-                                <p className="font-medium text-sm capitalize">{rule.sportType}</p>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-medium text-sm capitalize">{rule.sportType}</p>
+                                  {rule.bookerType === 'bptl' && (
+                                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-semibold shrink-0">BPTL</span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-zinc-400 mt-0.5">
                                   {formatTime(rule.startTime)} – {formatTime(rule.endTime)}
                                 </p>

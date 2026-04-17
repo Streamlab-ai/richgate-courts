@@ -46,19 +46,38 @@ export async function generateSlots(
   }
 
   // ── Sport rules check ──────────────────────────────────────────────────────
-  // If any active WeeklySportRule exists for this court + sport + dayOfWeek,
-  // only the rule's time window is allowed. No rule = unrestricted.
+  // Fetch ALL active rules for this sport+court (across all days).
+  // If any rules exist, this sport has a restricted schedule:
+  //   - Days with no matching rule → sport is completely unavailable.
+  //   - Days with rules → only the rule's time windows are allowed.
+  // If NO rules exist at all → unrestricted (open court hours apply).
   const dayOfWeek = new Date(date + 'T00:00:00').getDay()
-  const sportRules = await db.weeklySportRule.findMany({
-    where: { courtId, sportType, dayOfWeek, isActive: true },
-  })
+
+  const [todayRules, anyRulesExist] = await Promise.all([
+    db.weeklySportRule.findMany({
+      where: { courtId, sportType, dayOfWeek, isActive: true },
+    }),
+    db.weeklySportRule.findFirst({
+      where: { courtId, sportType, isActive: true },
+      select: { id: true },
+    }),
+  ])
 
   const grid = buildSlotGrid(settings.openTimeStart, settings.openTimeEnd, settings.slotDurationMinutes)
   const results: SlotAvailability[] = []
 
+  // If this sport has ANY scheduled rules but NONE for today → fully blocked today
+  if (anyRulesExist && todayRules.length === 0) {
+    return grid.map(({ startTime, endTime }) => ({
+      date, startTime, endTime,
+      available: false,
+      reason: `${sportType.charAt(0).toUpperCase() + sportType.slice(1)} is not scheduled today`,
+    }))
+  }
+
   // Fetch all confirmed bookings on this court/date once (avoid N+1)
   const existingBookings = await db.booking.findMany({
-    where: { courtId, date, status: 'confirmed' },
+    where: { courtId, date, status: { in: ['confirmed', 'pending_payment'] } },
     select: { startTime: true, endTime: true, sportType: true },
   })
 
@@ -68,9 +87,9 @@ export async function generateSlots(
 
   for (const { startTime, endTime } of grid) {
     // ── Sport rule gate ──────────────────────────────────────────────────────
-    // If rules exist, the slot must fall within at least one rule window.
-    if (sportRules.length > 0) {
-      const inWindow = sportRules.some(r =>
+    // If today has rules, slot must fall within at least one rule window.
+    if (todayRules.length > 0) {
+      const inWindow = todayRules.some(r =>
         timeToMinutes(startTime) >= timeToMinutes(r.startTime) &&
         timeToMinutes(endTime)   <= timeToMinutes(r.endTime)
       )
@@ -78,7 +97,7 @@ export async function generateSlots(
         results.push({
           date, startTime, endTime,
           available: false,
-          reason: `${sportType} not scheduled at this time`,
+          reason: `${sportType.charAt(0).toUpperCase() + sportType.slice(1)} not scheduled at this time`,
         })
         continue
       }

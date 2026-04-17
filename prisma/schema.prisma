@@ -10,7 +10,7 @@ datasource db {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PROFILES
-// role:   'member' | 'admin' | 'guard'
+// role:   'super_admin' | 'admin' | 'hoa' | 'bptl' | 'guard'
 // status: 'pending' | 'active' | 'suspended' | 'rejected'
 // ─────────────────────────────────────────────────────────────────────────────
 model Profile {
@@ -20,8 +20,7 @@ model Profile {
   passwordHash String   @map("password_hash")
   fullName     String   @map("full_name")
   phone        String?
-  memberType   String   @default("hoa") @map("member_type")   // 'hoa' | 'bptl'
-  role         String   @default("member")                // 'member' | 'admin' | 'guard'
+  role         String   @default("hoa")                   // 'super_admin' | 'admin' | 'hoa' | 'bptl' | 'guard'
   status       String   @default("pending")               // 'pending' | 'active' | 'suspended' | 'rejected'
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")

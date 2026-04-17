@@ -16,21 +16,34 @@ interface Props {
   monetizationEnabled: boolean
 }
 
-const SPORT_OPTIONS: { value: SportType; label: string; icon: string }[] = [
+const ALL_SPORT_OPTIONS: { value: SportType; label: string; icon: string }[] = [
   { value: 'tennis',     label: 'Tennis',     icon: '🎾' },
   { value: 'pickleball', label: 'Pickleball', icon: '🏓' },
   { value: 'basketball', label: 'Basketball', icon: '🏀' },
 ]
+
+// Sports allowed per court type
+function allowedSports(courtType: string): SportType[] {
+  if (courtType === 'tennis')       return ['tennis', 'pickleball']
+  if (courtType === 'multipurpose') return ['pickleball', 'basketball']
+  return ['tennis', 'pickleball', 'basketball']  // fallback: all
+}
+
+function defaultSport(courtType: string): SportType {
+  if (courtType === 'multipurpose') return 'pickleball'
+  return 'tennis'
+}
 
 function todayString() {
   return new Date().toISOString().slice(0, 10)
 }
 
 export default function GuestBookingForm({ courts, pricing, monetizationEnabled }: Props) {
+  const firstCourt = courts[0]
   // Step 1: court + sport + date + time slots
   const [step, setStep]               = useState<1 | 2>(1)
-  const [courtId, setCourtId]         = useState(courts[0]?.id ?? '')
-  const [sport, setSport]             = useState<SportType>('tennis')
+  const [courtId, setCourtId]         = useState(firstCourt?.id ?? '')
+  const [sport, setSport]             = useState<SportType>(defaultSport(firstCourt?.courtType ?? ''))
   const [date, setDate]               = useState(todayString())
   const [slots, setSlots]             = useState<Slot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -42,6 +55,16 @@ export default function GuestBookingForm({ courts, pricing, monetizationEnabled 
   const [guestPhone, setGuestPhone] = useState('')
   const [loading, setLoading]       = useState(false)
   const [error, setError]           = useState('')
+
+  // When court changes, reset sport to a valid one for that court type
+  useEffect(() => {
+    const court = courts.find(c => c.id === courtId)
+    if (!court) return
+    const allowed = allowedSports(court.courtType)
+    if (!allowed.includes(sport)) {
+      setSport(defaultSport(court.courtType))
+    }
+  }, [courtId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Load slots whenever court/sport/date changes
   useEffect(() => {
@@ -119,6 +142,9 @@ export default function GuestBookingForm({ courts, pricing, monetizationEnabled 
   }
 
   const selectedCourt = courts.find(c => c.id === courtId)
+  const sportOptions  = ALL_SPORT_OPTIONS.filter(s =>
+    allowedSports(selectedCourt?.courtType ?? '').includes(s.value)
+  )
 
   return (
     <div className="flex flex-col gap-5">
@@ -141,7 +167,7 @@ export default function GuestBookingForm({ courts, pricing, monetizationEnabled 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wide">Sport</label>
             <div className="flex gap-2">
-              {SPORT_OPTIONS.map(s => (
+              {sportOptions.map(s => (
                 <button
                   key={s.value}
                   type="button"

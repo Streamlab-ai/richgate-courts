@@ -24,7 +24,7 @@ const ALL_SPORT_OPTIONS: { value: SportType; label: string; icon: string }[] = [
 
 // Sports allowed per court type
 function allowedSports(courtType: string): SportType[] {
-  if (courtType === 'tennis')       return ['tennis', 'pickleball']
+  if (courtType === 'tennis')       return ['tennis']
   if (courtType === 'multipurpose') return ['pickleball', 'basketball']
   return ['tennis', 'pickleball', 'basketball']  // fallback: all
 }

@@ -5,7 +5,7 @@ import ReserveWizard from './ReserveWizard'
 export default async function ReservePage() {
   const profile = await requireActiveMember()
 
-  const memberType = (profile as { memberType?: string }).memberType ?? 'hoa'
+  const memberType = profile.role
 
   const [bptlSetting, tennisRateSetting, bptlRules] = await Promise.all([
     db.appSetting.findUnique({ where: { key: 'price_per_day_bptl_tennis' } }).catch(() => null),

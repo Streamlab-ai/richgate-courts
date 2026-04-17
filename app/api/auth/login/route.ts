@@ -35,14 +35,13 @@ export async function POST(request: NextRequest) {
       email: profile.email,
       role: profile.role,
       status: profile.status,
-      memberType: (profile as { memberType?: string }).memberType ?? 'hoa',
     })
 
     // Route by role
     let redirect: string
     if (profile.role === 'guard') {
       redirect = '/guard'
-    } else if (profile.role === 'admin') {
+    } else if (profile.role === 'admin' || profile.role === 'super_admin') {
       redirect = '/dashboard'
     } else {
       redirect = profile.status === 'active' ? '/home' : '/pending'

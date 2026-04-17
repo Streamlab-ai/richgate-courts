@@ -200,12 +200,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
               setSport(s.key)
               setBookingMode(null)
               setSelected([])
-              // BPTL tennis → show mode selection first
-              if (isBptl && s.key === 'tennis') {
-                setStep('bptl_mode')
-              } else {
-                setStep('date')
-              }
+              setStep('date')
             }}
             className="flex items-center gap-4 bg-white rounded-2xl p-4 border border-zinc-100 shadow-sm active:scale-95 transition-transform text-left"
           >
@@ -224,7 +219,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
   // ── STEP: bptl_mode (BPTL + tennis only) ────────────────────────────────────
   if (step === 'bptl_mode') return (
     <div>
-      <button onClick={() => setStep('sport')} className="text-sm text-zinc-500 mb-4">← Back</button>
+      <button onClick={() => setStep('date')} className="text-sm text-zinc-500 mb-4">← Back</button>
       <h1 className="text-2xl font-semibold mb-1">Tennis booking type</h1>
       <p className="text-zinc-500 text-sm mb-6">As a BPTL member, choose how you'd like to book</p>
 
@@ -232,7 +227,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
 
         {/* Option 1 — BPTL Exclusive */}
         <button
-          onClick={() => { setBookingMode('bptl_exclusive'); setStep('date') }}
+          onClick={() => { setBookingMode('bptl_exclusive'); setStep('slots') }}
           className="text-left bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 hover:border-emerald-400 active:scale-95 transition-all"
         >
           <div className="flex items-start justify-between mb-3">
@@ -265,7 +260,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
 
         {/* Option 2 — Standard Hourly */}
         <button
-          onClick={() => { setBookingMode('standard'); setStep('date') }}
+          onClick={() => { setBookingMode('standard'); setStep('slots') }}
           className="text-left bg-white border-2 border-zinc-200 rounded-2xl p-5 hover:border-zinc-400 active:scale-95 transition-all"
         >
           <div className="flex items-start justify-between mb-3">
@@ -294,15 +289,12 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
   // ── STEP: date ──────────────────────────────────────────────────────────────
   if (step === 'date') {
     const dates = Array.from({ length: 7 }, (_, i) => addDays(todayStr(), i))
-    const backStep: Step = (isBptl && sport === 'tennis') ? 'bptl_mode' : 'sport'
     return (
       <div>
-        <button onClick={() => setStep(backStep)} className="text-sm text-zinc-500 mb-4">← Back</button>
+        <button onClick={() => setStep('sport')} className="text-sm text-zinc-500 mb-4">← Back</button>
         <h1 className="text-2xl font-semibold mb-1">Pick a date</h1>
         <p className="text-zinc-500 text-sm mb-6">
           {sport && SPORTS.find(s => s.key === sport)?.emoji} {sport} · {court?.name}
-          {bookingMode === 'bptl_exclusive' && <span className="ml-2 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">BPTL Exclusive</span>}
-          {bookingMode === 'standard' && <span className="ml-2 text-xs bg-zinc-100 text-zinc-600 px-2 py-0.5 rounded-full font-medium">Standard · ₱{tennisPricePerHour}/hr</span>}
         </p>
         <div className="grid grid-cols-4 gap-2 mb-6">
           {dates.map(d => {
@@ -310,7 +302,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
             return (
               <button
                 key={d}
-                onClick={() => { setDate(d); setStep('slots') }}
+                onClick={() => { setDate(d); setStep(isBptl && sport === 'tennis' ? 'bptl_mode' : 'slots') }}
                 className={clsx(
                   'flex flex-col items-center py-3 rounded-xl border transition-all',
                   d === date ? 'bg-black text-white border-black' : 'bg-white border-zinc-200 text-zinc-700 hover:border-zinc-400',
@@ -333,7 +325,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
       : null
     return (
       <div>
-        <button onClick={() => setStep('date')} className="text-sm text-zinc-500 mb-4">← Back</button>
+        <button onClick={() => setStep(isBptl && sport === 'tennis' ? 'bptl_mode' : 'date')} className="text-sm text-zinc-500 mb-4">← Back</button>
         <h1 className="text-2xl font-semibold mb-1">Select time slots</h1>
         <p className="text-zinc-500 text-sm mb-4">
           {sport} · {date}

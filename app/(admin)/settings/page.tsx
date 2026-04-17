@@ -1,4 +1,4 @@
-import { requireAdmin, SUPER_ADMIN_MEMBER_ID } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { db } from '@/lib/db'
 import SettingsForm from './SettingsForm'
 import CourtFeesForm from './CourtFeesForm'
@@ -13,7 +13,7 @@ const ALL_SETTING_KEYS = ['monetization_enabled', ...FEE_KEYS.map(f => f.key), '
 
 export default async function AdminSettingsPage() {
   const me = await requireAdmin()
-  const currentUserIsSuperAdmin = me.memberId === SUPER_ADMIN_MEMBER_ID
+  const currentUserIsSuperAdmin = me.role === 'super_admin'
 
   // Wrap appSetting query defensively — table may not exist yet on first deploy
   const [courts, settingRows] = await Promise.all([

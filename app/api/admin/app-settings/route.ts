@@ -4,7 +4,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
-import { SUPER_ADMIN_MEMBER_ID } from '@/lib/auth'
 
 // Default settings seeded on first read
 const DEFAULTS: { key: string; value: string; label: string }[] = [
@@ -26,7 +25,7 @@ async function ensureDefaults() {
 }
 
 function adminOnly(session: Awaited<ReturnType<typeof getSession>>) {
-  return !session || session.role !== 'admin'
+  return !session || (session.role !== 'admin' && session.role !== 'super_admin')
 }
 
 export async function GET() {
@@ -51,8 +50,8 @@ export async function PATCH(request: NextRequest) {
   }
 
   // Check if caller is super admin (needed for monetization_enabled)
-  const me = await db.profile.findUnique({ where: { id: session!.sub }, select: { memberId: true } })
-  const callerIsSuperAdmin = me?.memberId === SUPER_ADMIN_MEMBER_ID
+  const me = await db.profile.findUnique({ where: { id: session!.sub }, select: { role: true } })
+  const callerIsSuperAdmin = me?.role === 'super_admin'
 
   // Validate — only allow known keys
   const allowedKeys = DEFAULTS.map(d => d.key)

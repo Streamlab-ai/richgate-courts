@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Account is not active' }, { status: 403 })
   }
 
-  // Fetch profile to get memberType
-  const profile = await db.profile.findUnique({ where: { id: memberId }, select: { id: true, memberType: true, fullName: true, email: true } })
+  // Fetch profile to get role
+  const profile = await db.profile.findUnique({ where: { id: memberId }, select: { id: true, role: true, fullName: true, email: true } })
 
   // ── BPTL Payment flow ────────────────────────────────────────────────────
-  if (profile?.memberType === 'bptl' && !isAdmin) {
+  if (profile?.role === 'bptl' && !isAdmin) {
     const court = await db.court.findUnique({ where: { id: courtId }, select: { courtType: true } })
     const secretKey = process.env.PAYMONGO_SECRET_KEY
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://richgate-courts.vercel.app'

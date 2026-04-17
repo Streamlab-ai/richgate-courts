@@ -25,9 +25,8 @@ function matchesRoute(pathname: string, routes: string[]): boolean {
 interface SessionPayload {
   sub: string
   email: string
-  role: string
+  role: string  // 'super_admin' | 'admin' | 'hoa' | 'bptl' | 'guard'
   status: string
-  memberType?: string
 }
 
 async function getSessionFromRequest(request: NextRequest): Promise<SessionPayload | null> {
@@ -66,8 +65,8 @@ export async function proxy(request: NextRequest) {
   // Public routes — send logged-in users away
   if (matchesRoute(pathname, PUBLIC_ROUTES)) {
     if (session) {
-      const dest = session.role === 'admin' ? '/dashboard'
-                 : session.role === 'guard'  ? '/guard'
+      const dest = (session.role === 'admin' || session.role === 'super_admin') ? '/dashboard'
+                 : session.role === 'guard' ? '/guard'
                  : '/home'
       return NextResponse.redirect(new URL(dest, request.url))
     }
@@ -81,7 +80,7 @@ export async function proxy(request: NextRequest) {
       loginUrl.searchParams.set('next', pathname)
       return NextResponse.redirect(loginUrl)
     }
-    if (session.role !== 'guard' && session.role !== 'admin') {
+    if (session.role !== 'guard' && session.role !== 'admin' && session.role !== 'super_admin') {
       return NextResponse.redirect(new URL('/home', request.url))
     }
     return NextResponse.next()
@@ -96,7 +95,7 @@ export async function proxy(request: NextRequest) {
 
   // Admin routes — check role claim in JWT (no DB call needed)
   if (matchesRoute(pathname, ADMIN_ROUTES)) {
-    if (session.role !== 'admin') {
+    if (session.role !== 'admin' && session.role !== 'super_admin') {
       return NextResponse.redirect(new URL('/home', request.url))
     }
   }

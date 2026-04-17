@@ -16,8 +16,7 @@ export default function AddMemberForm({ viewerIsSuperAdmin }: { viewerIsSuperAdm
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('active')
-  const [role, setRole] = useState('member')
-  const [memberType, setMemberType] = useState('hoa')
+  const [role, setRole] = useState('hoa')
 
   const reset = () => {
     setFullName('')
@@ -25,8 +24,7 @@ export default function AddMemberForm({ viewerIsSuperAdmin }: { viewerIsSuperAdm
     setPhone('')
     setPassword('')
     setStatus('active')
-    setRole('member')
-    setMemberType('hoa')
+    setRole('hoa')
     setError('')
     setSuccess('')
   }
@@ -46,7 +44,7 @@ export default function AddMemberForm({ viewerIsSuperAdmin }: { viewerIsSuperAdm
       const res = await fetch('/api/admin/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullName, email, phone, password, status, role, memberType: role === 'member' ? memberType : 'hoa' }),
+        body: JSON.stringify({ fullName, email, phone, password, status, role }),
       })
       const data = await res.json()
       if (!res.ok) {
@@ -137,25 +135,12 @@ export default function AddMemberForm({ viewerIsSuperAdmin }: { viewerIsSuperAdm
               onChange={e => setRole(e.target.value)}
               className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none bg-white"
             >
-              <option value="member">Member</option>
+              <option value="hoa">HOA Member</option>
+              <option value="bptl">BPTL Member</option>
               <option value="guard">Guard</option>
               {viewerIsSuperAdmin && <option value="admin">Admin</option>}
             </select>
           </div>
-
-          {role === 'member' && (
-            <div>
-              <label className="text-sm font-medium text-zinc-700 block mb-1">Member Type</label>
-              <select
-                value={memberType}
-                onChange={e => setMemberType(e.target.value)}
-                className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none bg-white"
-              >
-                <option value="hoa">HOA Member</option>
-                <option value="bptl">BPTL Member</option>
-              </select>
-            </div>
-          )}
 
           <div>
             <label className="text-sm font-medium text-zinc-700 block mb-1">Status</label>

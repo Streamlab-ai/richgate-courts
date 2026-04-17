@@ -16,7 +16,7 @@ export default async function GuardPage({
       status: { in: ['confirmed', 'completed', 'pending_payment'] },
     },
     include: {
-      member: { select: { fullName: true, memberId: true, memberType: true } },
+      member: { select: { fullName: true, memberId: true, role: true } },
       court:  { select: { name: true } },
     },
     orderBy: [{ startTime: 'asc' }],
@@ -86,7 +86,7 @@ export default async function GuardPage({
           <div className="flex flex-col gap-2">
             {bookings.map(b => {
               const displayName = b.member?.fullName ?? b.guestName ?? 'Guest'
-              const memberType  = b.isGuest ? 'guest' : (b.member?.memberType ?? 'hoa')
+              const memberType  = b.isGuest ? 'guest' : (b.member?.role ?? 'hoa')
               return (
                 <div key={b.id} className="bg-white rounded-2xl px-4 py-3 border border-zinc-100">
                   <div className="flex justify-between items-start">

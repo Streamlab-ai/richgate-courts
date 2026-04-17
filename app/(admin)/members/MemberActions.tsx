@@ -11,7 +11,6 @@ interface Props {
   currentEmail: string
   currentPhone: string | null
   currentRole: string
-  currentMemberType: string
   isSuperAdmin: boolean       // this member IS the super admin
   targetIsAdmin: boolean      // this member has admin role
   viewerIsSuperAdmin: boolean // the logged-in user is super admin
@@ -24,7 +23,6 @@ export default function MemberActions({
   currentEmail,
   currentPhone,
   currentRole,
-  currentMemberType,
   isSuperAdmin,
   targetIsAdmin,
   viewerIsSuperAdmin,
@@ -40,7 +38,6 @@ export default function MemberActions({
   const [phone, setPhone] = useState(currentPhone ?? '')
   const [status, setStatus] = useState(currentStatus)
   const [role, setRole] = useState(currentRole)
-  const [memberType, setMemberType] = useState(currentMemberType)
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
 
@@ -48,7 +45,7 @@ export default function MemberActions({
     e.preventDefault()
     setError('')
     setLoading(true)
-    const body: Record<string, string> = { fullName, email, phone, status, role, memberType: role === 'member' ? memberType : 'hoa' }
+    const body: Record<string, string> = { fullName, email, phone, status, role }
     if (password) body.password = password
 
     const res = await fetch(`/api/admin/members/${memberId}`, {
@@ -83,7 +80,6 @@ export default function MemberActions({
             setPhone(currentPhone ?? '')
             setStatus(currentStatus)
             setRole(currentRole)
-            setMemberType(currentMemberType)
             setPassword('')
             setError('')
             setEditOpen(true)
@@ -167,26 +163,12 @@ export default function MemberActions({
                   disabled={isSuperAdmin}
                   className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none bg-white disabled:opacity-50"
                 >
-                  <option value="member">Member</option>
+                  <option value="hoa">HOA Member</option>
+                  <option value="bptl">BPTL Member</option>
                   <option value="guard">Guard</option>
                   {viewerIsSuperAdmin && <option value="admin">Admin</option>}
                 </select>
               </div>
-
-              {role === 'member' && (
-                <div>
-                  <label className="text-sm font-medium text-zinc-700 block mb-1">Member Type</label>
-                  <select
-                    value={memberType}
-                    onChange={e => setMemberType(e.target.value)}
-                    disabled={isSuperAdmin}
-                    className="w-full px-3 py-2 border border-zinc-200 rounded-xl text-sm outline-none bg-white disabled:opacity-50"
-                  >
-                    <option value="hoa">HOA Member</option>
-                    <option value="bptl">BPTL Member</option>
-                  </select>
-                </div>
-              )}
 
               <div>
                 <label className="text-sm font-medium text-zinc-700 block mb-1">Status</label>

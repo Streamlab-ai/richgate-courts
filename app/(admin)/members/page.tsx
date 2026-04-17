@@ -1,4 +1,4 @@
-import { requireAdmin, SUPER_ADMIN_MEMBER_ID } from '@/lib/auth'
+import { requireAdmin } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
@@ -11,7 +11,7 @@ export default async function AdminMembersPage({
   searchParams: Promise<{ search?: string; status?: string }>
 }) {
   const me = await requireAdmin()
-  const viewerIsSuperAdmin = me.memberId === SUPER_ADMIN_MEMBER_ID
+  const viewerIsSuperAdmin = me.role === 'super_admin'
   const { search = '', status } = await searchParams
 
   const members = await db.profile.findMany({
@@ -67,13 +67,13 @@ export default async function AdminMembersPage({
                 <div>
                   <p className="font-medium flex flex-wrap items-center gap-1">
                     {m.fullName}
-                    {m.memberId === SUPER_ADMIN_MEMBER_ID
+                    {m.role === 'super_admin'
                       ? <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-md font-medium">⭐ Super Admin</span>
                       : m.role === 'admin'
                         ? <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-md font-medium">Admin</span>
                         : m.role === 'guard'
                           ? <span className="text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded-md font-medium">Guard</span>
-                          : (m as { memberType?: string }).memberType === 'bptl'
+                          : m.role === 'bptl'
                             ? <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-md font-medium">BPTL</span>
                             : <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md font-medium">HOA</span>
                     }
@@ -90,9 +90,8 @@ export default async function AdminMembersPage({
                 currentEmail={m.email}
                 currentPhone={m.phone}
                 currentRole={m.role}
-                currentMemberType={(m as { memberType?: string }).memberType ?? 'hoa'}
-                isSuperAdmin={m.memberId === SUPER_ADMIN_MEMBER_ID}
-                targetIsAdmin={m.role === 'admin'}
+                isSuperAdmin={m.role === 'super_admin'}
+                targetIsAdmin={m.role === 'admin' || m.role === 'super_admin'}
                 viewerIsSuperAdmin={viewerIsSuperAdmin}
               />
             </CardContent>

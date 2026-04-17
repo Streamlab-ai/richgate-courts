@@ -18,8 +18,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'courtId, sportType, and date are required' }, { status: 400 })
   }
 
-  const profile = await db.profile.findUnique({ where: { id: session.sub }, select: { memberType: true } })
-  const callerMemberType = (profile?.memberType ?? 'hoa') as 'hoa' | 'bptl'
+  const profile = await db.profile.findUnique({ where: { id: session.sub }, select: { role: true } })
+  const callerMemberType = (profile?.role ?? 'hoa') as 'hoa' | 'bptl'
   const slots = await generateSlots(courtId, sportType, date, callerMemberType)
   return NextResponse.json({ slots })
 }

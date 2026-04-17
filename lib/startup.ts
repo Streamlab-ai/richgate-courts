@@ -121,6 +121,20 @@ export async function runStartup() {
       )
     `
 
+    // ── 11. Migrate role values: member→hoa/bptl, admin→super_admin ──────────────
+    await db.$executeRaw`
+      UPDATE profiles SET role = 'bptl'
+      WHERE role = 'member' AND member_type = 'bptl'
+    `
+    await db.$executeRaw`
+      UPDATE profiles SET role = 'hoa'
+      WHERE role = 'member' AND (member_type = 'hoa' OR member_type IS NULL)
+    `
+    await db.$executeRaw`
+      UPDATE profiles SET role = 'super_admin'
+      WHERE member_id = 'RG-000001' AND role = 'admin'
+    `
+
     console.log('[startup] ✅ Schema + seed checks complete')
   } catch (err) {
     // Non-fatal — log and continue. App still works; fixes will retry next cold start.

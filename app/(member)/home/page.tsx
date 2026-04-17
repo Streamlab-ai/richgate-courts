@@ -1,28 +1,31 @@
-import { requireActiveMember } from '@/lib/auth'
+import { requireMemberSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import Link from 'next/link'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
 
 export default async function MemberHomePage() {
-  const profile = await requireActiveMember()
+  // JWT-only auth check — no DB hit
+  const session = await requireMemberSession()
   const today = new Date().toISOString().slice(0, 10)
 
-  const upcomingBookings = await db.booking.findMany({
-    where: { memberId: profile.id, status: 'confirmed', date: { gte: today } },
-    include: { court: { select: { name: true } } },
-    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-    take: 5,
-  })
-
-  const waitlistEntries = await db.waitlistEntry.count({
-    where: { memberId: profile.id, status: 'waiting' },
-  })
-
-  const courts = await db.court.findMany({
-    where: { isActive: true },
-    include: { bookingSettings: true },
-  })
+  // All queries run in parallel — profile + bookings + waitlist + courts
+  const [profile, upcomingBookings, waitlistEntries, courts] = await Promise.all([
+    db.profile.findUniqueOrThrow({ where: { id: session.sub } }),
+    db.booking.findMany({
+      where: { memberId: session.sub, status: 'confirmed', date: { gte: today } },
+      include: { court: { select: { name: true } } },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      take: 5,
+    }),
+    db.waitlistEntry.count({
+      where: { memberId: session.sub, status: 'waiting' },
+    }),
+    db.court.findMany({
+      where: { isActive: true },
+      include: { bookingSettings: true },
+    }),
+  ])
 
   return (
     <div>

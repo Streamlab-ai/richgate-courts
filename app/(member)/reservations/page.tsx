@@ -1,4 +1,4 @@
-import { requireActiveMember } from '@/lib/auth'
+import { requireMemberSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
@@ -7,35 +7,36 @@ import QrDisplay from './QrDisplay'
 import QRCode from 'qrcode'
 
 export default async function MyReservationsPage() {
-  const profile = await requireActiveMember()
+  // JWT-only auth — no DB hit
+  const session = await requireMemberSession()
   const today = new Date().toISOString().slice(0, 10)
 
-  const [upcoming, past] = await Promise.all([
+  // All queries in parallel — bookings + waitlist
+  const [upcoming, past, waitlist] = await Promise.all([
     db.booking.findMany({
-      where: { memberId: profile.id, status: 'confirmed', date: { gte: today } },
+      where: { memberId: session.sub, status: 'confirmed', date: { gte: today } },
       include: { court: { select: { name: true } } },
       orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
     }),
     db.booking.findMany({
-      where: { memberId: profile.id, date: { lt: today } },
+      where: { memberId: session.sub, date: { lt: today } },
       include: { court: { select: { name: true } } },
       orderBy: [{ date: 'desc' }, { startTime: 'desc' }],
       take: 20,
+    }),
+    db.waitlistEntry.findMany({
+      where: { memberId: session.sub, status: 'waiting' },
+      orderBy: { createdAt: 'asc' },
     }),
   ])
 
   // Generate real QR data URLs for upcoming bookings with tokens
   const qrDataUrls: Record<string, string> = {}
-  for (const b of upcoming) {
+  await Promise.all(upcoming.map(async (b) => {
     if (b.qrToken) {
       qrDataUrls[b.id] = await QRCode.toDataURL(b.qrToken, { width: 200, margin: 2 })
     }
-  }
-
-  const waitlist = await db.waitlistEntry.findMany({
-    where: { memberId: profile.id, status: 'waiting' },
-    orderBy: { createdAt: 'asc' },
-  })
+  }))
 
   return (
     <div>

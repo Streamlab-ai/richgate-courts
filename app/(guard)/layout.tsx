@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { requireGuardOrAdmin } from '@/lib/auth'
+import { requireGuardOrAdminSession } from '@/lib/auth'
 import { BRANDING } from '@/lib/branding'
 
 const NAV = [
@@ -8,7 +8,7 @@ const NAV = [
 ]
 
 export default async function GuardLayout({ children }: { children: React.ReactNode }) {
-  await requireGuardOrAdmin()
+  await requireGuardOrAdminSession()
   return (
     <div className="min-h-screen bg-[#f5f5f7]">
       {/* Top header */}

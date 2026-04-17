@@ -1,11 +1,11 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
 import RegistrationActions from './RegistrationActions'
 
 export default async function AdminRegistrationsPage() {
-  await requireAdmin()
+  await requireAdminSession()
 
   const registrations = await db.registrationRequest.findMany({
     where: { status: 'pending' },

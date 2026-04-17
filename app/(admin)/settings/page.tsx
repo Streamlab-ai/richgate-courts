@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import SettingsForm from './SettingsForm'
 import CourtFeesForm from './CourtFeesForm'
@@ -12,7 +12,7 @@ const FEE_KEYS = [
 const ALL_SETTING_KEYS = ['monetization_enabled', ...FEE_KEYS.map(f => f.key), 'price_per_day_bptl_tennis']
 
 export default async function AdminSettingsPage() {
-  const me = await requireAdmin()
+  const me = await requireAdminSession()
   const currentUserIsSuperAdmin = me.role === 'super_admin'
 
   // Wrap appSetting query defensively — table may not exist yet on first deploy

@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
@@ -10,26 +10,28 @@ export default async function AdminBookingsPage({
 }: {
   searchParams: Promise<{ date?: string; courtId?: string; status?: string }>
 }) {
-  await requireAdmin()
+  // JWT-only auth — no DB hit
+  await requireAdminSession()
   const { date, courtId, status } = await searchParams
   const today = new Date().toISOString().slice(0, 10)
 
-  const bookings = await db.booking.findMany({
-    where: {
-      ...(date    ? { date }    : { date: { gte: today } }),
-      ...(courtId ? { courtId } : {}),
-      ...(status  ? { status }  : {}),
-    },
-    include: {
-      member: { select: { fullName: true, memberId: true } },
-      court:  { select: { name: true } },
-    },
-    // guest + payment fields are on the booking itself
-    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-    take: 100,
-  })
-
-  const courts = await db.court.findMany({ where: { isActive: true }, select: { id: true, name: true } })
+  // Both queries run in parallel
+  const [bookings, courts] = await Promise.all([
+    db.booking.findMany({
+      where: {
+        ...(date    ? { date }    : { date: { gte: today } }),
+        ...(courtId ? { courtId } : {}),
+        ...(status  ? { status }  : {}),
+      },
+      include: {
+        member: { select: { fullName: true, memberId: true } },
+        court:  { select: { name: true } },
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      take: 100,
+    }),
+    db.court.findMany({ where: { isActive: true }, select: { id: true, name: true } }),
+  ])
 
   return (
     <div>

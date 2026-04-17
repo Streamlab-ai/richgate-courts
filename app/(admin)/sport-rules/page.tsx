@@ -1,9 +1,9 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import SportRulesManager from './SportRulesManager'
 
 export default async function AdminSportRulesPage() {
-  await requireAdmin()
+  await requireAdminSession()
 
   const [courts, rules] = await Promise.all([
     db.court.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),

@@ -1,30 +1,31 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
 
 export default async function AdminDashboardPage() {
-  await requireAdmin()
+  // JWT-only auth — no DB hit
+  await requireAdminSession()
 
   const today = new Date().toISOString().slice(0, 10)
 
-  const [pendingReg, totalMembers, todayBookings, waitlistCount, pendingCheckins] = await Promise.all([
+  // All queries run in a single parallel batch
+  const [pendingReg, totalMembers, todayBookings, waitlistCount, pendingCheckins, recentBookings] = await Promise.all([
     db.registrationRequest.count({ where: { status: 'pending' } }),
     db.profile.count({ where: { role: { in: ['hoa', 'bptl'] }, status: 'active' } }),
     db.booking.count({ where: { date: today, status: 'confirmed' } }),
     db.waitlistEntry.count({ where: { status: 'waiting' } }),
     db.booking.count({ where: { date: today, status: 'confirmed' } }),
+    db.booking.findMany({
+      where: { date: { gte: today }, status: { in: ['confirmed', 'pending_payment'] } },
+      include: {
+        member: { select: { fullName: true, memberId: true } },
+        court:  { select: { name: true } },
+      },
+      orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
+      take: 10,
+    }),
   ])
-
-  const recentBookings = await db.booking.findMany({
-    where: { date: { gte: today }, status: { in: ['confirmed', 'pending_payment'] } },
-    include: {
-      member: { select: { fullName: true, memberId: true } },
-      court:  { select: { name: true } },
-    },
-    orderBy: [{ date: 'asc' }, { startTime: 'asc' }],
-    take: 10,
-  })
 
   const stats = [
     { label: 'Pending approvals', value: pendingReg, href: '/registrations', color: 'bg-amber-50 text-amber-700', urgent: pendingReg > 0 },

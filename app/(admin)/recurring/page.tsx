@@ -1,10 +1,10 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
 
 export default async function AdminRecurringPage() {
-  await requireAdmin()
+  await requireAdminSession()
 
   const series = await db.recurrenceSeries.findMany({
     orderBy: { createdAt: 'desc' },

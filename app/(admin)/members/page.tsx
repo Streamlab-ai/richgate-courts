@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
@@ -10,8 +10,9 @@ export default async function AdminMembersPage({
 }: {
   searchParams: Promise<{ search?: string; status?: string }>
 }) {
-  const me = await requireAdmin()
-  const viewerIsSuperAdmin = me.role === 'super_admin'
+  // JWT-only auth — no DB hit; role is in the JWT
+  const session = await requireAdminSession()
+  const viewerIsSuperAdmin = session.role === 'super_admin'
   const { search = '', status } = await searchParams
 
   const members = await db.profile.findMany({

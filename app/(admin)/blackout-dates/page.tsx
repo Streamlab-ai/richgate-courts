@@ -1,9 +1,9 @@
-import { requireAdmin } from '@/lib/auth'
+import { requireAdminSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import BlackoutManager from './BlackoutManager'
 
 export default async function AdminBlackoutDatesPage() {
-  await requireAdmin()
+  await requireAdminSession()
 
   const [courts, blackouts] = await Promise.all([
     db.court.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),

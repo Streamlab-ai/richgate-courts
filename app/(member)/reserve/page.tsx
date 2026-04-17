@@ -1,11 +1,12 @@
-import { requireActiveMember } from '@/lib/auth'
+import { requireMemberSession } from '@/lib/auth'
 import { db } from '@/lib/db'
 import ReserveWizard from './ReserveWizard'
 
 export default async function ReservePage() {
-  const profile = await requireActiveMember()
+  // JWT-only auth — no DB hit; role is in the JWT
+  const session = await requireMemberSession()
 
-  const memberType = profile.role
+  const memberType = session.role
 
   // Find actual tennis court (don't hardcode ID)
   const tennisCourt = await db.court.findFirst({

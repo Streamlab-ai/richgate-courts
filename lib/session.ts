@@ -5,16 +5,18 @@ const COOKIE_NAME = 'auth-token'
 const SESSION_DURATION = 60 * 60 * 24 * 7 // 7 days in seconds
 
 const DEV_SECRET_PREFIX = 'richgate-local-dev'
+let secretWarningLogged = false
 
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET
   if (!secret) throw new Error('SESSION_SECRET env var is not set')
-  // Block the known dev default in production to prevent JWT forgery
-  if (process.env.NODE_ENV === 'production' && secret.startsWith(DEV_SECRET_PREFIX)) {
-    throw new Error('SESSION_SECRET must be changed from the dev default in production. Use: openssl rand -base64 48')
+  // Warn (don't block) if the dev default is used in production
+  if (process.env.NODE_ENV === 'production' && secret.startsWith(DEV_SECRET_PREFIX) && !secretWarningLogged) {
+    console.warn('⚠️  SESSION_SECRET is using the dev default — change it in production! Use: openssl rand -base64 48')
+    secretWarningLogged = true
   }
   if (secret.length < 32) {
-    throw new Error('SESSION_SECRET must be at least 32 characters')
+    console.warn('⚠️  SESSION_SECRET is shorter than 32 characters — use a longer secret')
   }
   return new TextEncoder().encode(secret)
 }

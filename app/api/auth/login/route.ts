@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Valid bcrypt hash of random string — ensures constant-time comparison
     // even when the email doesn't exist (prevents timing-based user enumeration)
-    const dummyHash = '$2a$12$LJ3m4ys3Lg2VE9Dqk.6HxOBBSFkGR1KQFHE0xTG7sDJPnA.6Vq6G'
+    const dummyHash = '$2y$12$gh2SZIB32dI3aU8Ejv8voexZAu7GP4cbV7ivVsM0./K1/KG8zS9SO'
     const valid = profile
       ? await compare(password, profile.passwordHash)
       : await compare(password, dummyHash)

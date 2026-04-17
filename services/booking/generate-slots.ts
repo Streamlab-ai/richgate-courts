@@ -107,12 +107,12 @@ export async function generateSlots(
       isBptlSlot = !!bptlRule
 
       if (bptlRule && !openRule) {
-        // Slot is BPTL-exclusive
-        if (callerMemberType !== 'bptl') {
-          results.push({ date, startTime, endTime, available: false, reason: 'BPTL reserved', isBptlSlot })
+        // Slot is BPTL-exclusive — guests are blocked, HOA and BPTL members can book
+        if (callerMemberType === 'guest') {
+          results.push({ date, startTime, endTime, available: false, reason: 'Members only', isBptlSlot })
           continue
         }
-        // BPTL caller on BPTL slot — fall through to conflict check below
+        // HOA/BPTL callers — fall through to conflict check below
       } else if (!bptlRule && !openRule) {
         // No rule covers this slot at all
         results.push({

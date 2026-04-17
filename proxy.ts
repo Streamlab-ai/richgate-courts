@@ -107,13 +107,16 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // Member routes — check status claim in JWT
+  // Member routes — admins bypass status check, members must be active
   if (matchesRoute(pathname, MEMBER_ROUTES)) {
-    if (!session.status || session.status === 'pending') {
-      return NextResponse.redirect(new URL('/pending', request.url))
-    }
-    if (session.status !== 'active') {
-      return NextResponse.redirect(new URL('/login', request.url))
+    const isAdmin = session.role === 'admin' || session.role === 'super_admin'
+    if (!isAdmin) {
+      if (!session.status || session.status === 'pending') {
+        return NextResponse.redirect(new URL('/pending', request.url))
+      }
+      if (session.status !== 'active') {
+        return NextResponse.redirect(new URL('/login', request.url))
+      }
     }
   }
 

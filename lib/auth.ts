@@ -45,9 +45,12 @@ export async function requireAuth() {
 export async function requireActiveMember() {
   const profile = await getProfile()
   if (!profile) redirect('/login')
-  if (profile.role !== 'hoa' && profile.role !== 'bptl') redirect('/home')
-  if (profile.status === 'pending') redirect('/pending')
-  if (profile.status !== 'active') redirect('/login')
+  const isAdmin = profile.role === 'admin' || profile.role === 'super_admin'
+  if (!isAdmin && profile.role !== 'hoa' && profile.role !== 'bptl') redirect('/login')
+  if (!isAdmin) {
+    if (profile.status === 'pending') redirect('/pending')
+    if (profile.status !== 'active') redirect('/login')
+  }
   return profile
 }
 

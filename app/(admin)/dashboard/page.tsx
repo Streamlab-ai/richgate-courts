@@ -17,7 +17,7 @@ export default async function AdminDashboardPage() {
   ])
 
   const recentBookings = await db.booking.findMany({
-    where: { date: { gte: today } },
+    where: { date: { gte: today }, status: { in: ['confirmed', 'pending_payment'] } },
     include: {
       member: { select: { fullName: true, memberId: true } },
       court:  { select: { name: true } },
@@ -60,10 +60,13 @@ export default async function AdminDashboardPage() {
               <CardContent className="pt-3">
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-sm font-medium">{b.member.fullName}</p>
+                    <p className="text-sm font-medium">
+                      {b.member?.fullName ?? b.guestName ?? 'Guest'}
+                      {b.isGuest && <span className="ml-2 text-xs bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-md font-medium">Guest</span>}
+                    </p>
                     <p className="text-xs text-zinc-400">{b.court.name} · <span className="capitalize">{b.sportType}</span> · {b.date} {b.startTime}–{b.endTime}</p>
                   </div>
-                  <span className="text-xs font-mono text-zinc-400">{b.member.memberId}</span>
+                  <span className="text-xs font-mono text-zinc-400">{b.member?.memberId ?? '—'}</span>
                 </div>
               </CardContent>
             </Card>

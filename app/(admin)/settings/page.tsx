@@ -15,9 +15,10 @@ export default async function AdminSettingsPage() {
   const me = await requireAdmin()
   const currentUserIsSuperAdmin = me.memberId === SUPER_ADMIN_MEMBER_ID
 
+  // Wrap appSetting query defensively — table may not exist yet on first deploy
   const [courts, settingRows] = await Promise.all([
     db.court.findMany({ include: { bookingSettings: true }, orderBy: { name: 'asc' } }),
-    db.appSetting.findMany({ where: { key: { in: ALL_SETTING_KEYS } } }),
+    db.appSetting.findMany({ where: { key: { in: ALL_SETTING_KEYS } } }).catch(() => []),
   ])
 
   const settingMap = Object.fromEntries(settingRows.map(r => [r.key, r.value]))

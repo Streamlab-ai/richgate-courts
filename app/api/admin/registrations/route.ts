@@ -30,46 +30,52 @@ export async function POST(request: NextRequest) {
   const session = await getSession()
   if (adminOnly(session)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const body = await request.json()
-  const { registrationId, action, notes } = body  // action: 'approve' | 'reject'
+  try {
+    const body = await request.json()
+    const { registrationId, action, notes } = body  // action: 'approve' | 'reject'
 
-  if (!registrationId || !['approve', 'reject'].includes(action)) {
-    return NextResponse.json({ error: 'registrationId and action (approve|reject) are required' }, { status: 400 })
+    if (!registrationId || !['approve', 'reject'].includes(action)) {
+      return NextResponse.json({ error: 'registrationId and action (approve|reject) are required' }, { status: 400 })
+    }
+
+    const reg = await db.registrationRequest.findUnique({
+      where: { id: registrationId },
+      include: { profile: true },
+    })
+    if (!reg) return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
+
+    const newStatus = action === 'approve' ? 'approved' : 'rejected'
+    const memberStatus = action === 'approve' ? 'active' : 'rejected'
+
+    // Generate member ID if approving
+    let memberId = reg.profile.memberId
+    if (action === 'approve' && !memberId) {
+      const count = await db.profile.count({ where: { memberId: { not: null } } })
+      memberId = `RG-${String(count + 1).padStart(6, '0')}`
+    }
+
+    await db.registrationRequest.update({
+      where: { id: registrationId },
+      data: { status: newStatus, notes: notes ?? null, reviewedBy: session!.sub, reviewedAt: new Date() },
+    })
+    await db.profile.update({
+      where: { id: reg.profileId },
+      data: { status: memberStatus, ...(memberId ? { memberId } : {}) },
+    })
+
+    // Non-critical — don't let email failure block the approval
+    sendNotification({
+      profileId: reg.profileId,
+      type: action === 'approve' ? 'member_approved' : 'member_rejected',
+      subject: action === 'approve' ? 'Your membership is approved!' : 'Membership application update',
+      body: action === 'approve'
+        ? `Welcome! Your member ID is ${memberId}. You can now book courts.`
+        : `We're sorry, your application was not approved.${notes ? ` Note: ${notes}` : ''}`,
+    }).catch(err => console.error('[registrations] notification failed:', err))
+
+    return NextResponse.json({ ok: true, memberId })
+  } catch (err) {
+    console.error('[registrations POST]', err)
+    return NextResponse.json({ error: 'Server error — please try again' }, { status: 500 })
   }
-
-  const reg = await db.registrationRequest.findUnique({
-    where: { id: registrationId },
-    include: { profile: true },
-  })
-  if (!reg) return NextResponse.json({ error: 'Registration not found' }, { status: 404 })
-
-  const newStatus = action === 'approve' ? 'approved' : 'rejected'
-  const memberStatus = action === 'approve' ? 'active' : 'rejected'
-
-  // Generate member ID if approving
-  let memberId = reg.profile.memberId
-  if (action === 'approve' && !memberId) {
-    const count = await db.profile.count({ where: { memberId: { not: null } } })
-    memberId = `RG-${String(count + 1).padStart(6, '0')}`
-  }
-
-  await db.registrationRequest.update({
-    where: { id: registrationId },
-    data: { status: newStatus, notes: notes ?? null, reviewedBy: session!.sub, reviewedAt: new Date() },
-  })
-  await db.profile.update({
-    where: { id: reg.profileId },
-    data: { status: memberStatus, ...(memberId ? { memberId } : {}) },
-  })
-
-  await sendNotification({
-    profileId: reg.profileId,
-    type: action === 'approve' ? 'member_approved' : 'member_rejected',
-    subject: action === 'approve' ? 'Your membership is approved!' : 'Membership application update',
-    body: action === 'approve'
-      ? `Welcome! Your member ID is ${memberId}. You can now book courts.`
-      : `We're sorry, your application was not approved.${notes ? ` Note: ${notes}` : ''}`,
-  })
-
-  return NextResponse.json({ ok: true, memberId })
 }

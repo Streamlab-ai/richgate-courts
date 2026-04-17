@@ -25,12 +25,13 @@ export async function POST(request: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { courtId, sportType, slots, memberId: bodyMemberId, adminOverride: bodyAdminOverride } = body as {
+  const { courtId, sportType, slots, memberId: bodyMemberId, adminOverride: bodyAdminOverride, bookingMode } = body as {
     courtId: string
     sportType: SportType
     slots: TimeSlot[]
     memberId?: string
     adminOverride?: boolean
+    bookingMode?: 'bptl_exclusive' | 'standard'
   }
 
   if (!courtId || !sportType || !Array.isArray(slots) || slots.length === 0) {
@@ -66,7 +67,52 @@ export async function POST(request: NextRequest) {
     }, 0)
 
     if (court?.courtType === 'tennis') {
-      // Check daily dedup
+
+      // ── Standard mode: BPTL books outside exclusive hours at per-hour rate ──
+      if (bookingMode === 'standard') {
+        const rateKey = 'price_per_hour_tennis'
+        const rateSetting = await db.appSetting.findUnique({ where: { key: rateKey } })
+        const pricePerHour = Number(rateSetting?.value ?? 200)
+        const amountPhp = Math.round((durationMinutes / 60) * pricePerHour)
+        const amountCentavos = amountPhp * 100
+        const qrToken = crypto.randomBytes(16).toString('hex')
+        const booking = await db.booking.create({
+          data: {
+            memberId: profile.id,
+            courtId, sportType,
+            date: bookingDate,
+            startTime,
+            endTime,
+            durationMinutes,
+            status: 'pending_payment',
+            paymentStatus: 'pending',
+            amountPaid: amountCentavos,
+            bookerType: 'bptl',
+            qrToken,
+          },
+        })
+        if (!secretKey) {
+          return NextResponse.json({ ok: true, bookingId: booking.id, mode: 'test', redirect: '/reservations' })
+        }
+        const pmRes = await fetch('https://api.paymongo.com/v1/sources', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Basic ${Buffer.from(secretKey + ':').toString('base64')}` },
+          body: JSON.stringify({ data: { attributes: {
+            amount: amountCentavos, currency: 'PHP', type: 'gcash',
+            redirect: { success: `${baseUrl}/reservations?paid=1`, failed: `${baseUrl}/reserve?error=payment_failed` },
+            billing: { name: profile.fullName, email: profile.email },
+          }}}),
+        })
+        const pmData = await pmRes.json()
+        if (!pmRes.ok) {
+          await db.booking.delete({ where: { id: booking.id } })
+          return NextResponse.json({ error: 'Payment initiation failed' }, { status: 502 })
+        }
+        await db.booking.update({ where: { id: booking.id }, data: { paymentRef: pmData.data.id } })
+        return NextResponse.json({ ok: true, bookingId: booking.id, checkoutUrl: pmData.data.attributes.redirect.checkout_url, mode: 'bptl_standard_gcash' })
+      }
+
+      // ── BPTL exclusive mode: ₱100/day, deduped ───────────────────────────
       const alreadyPaid = await db.booking.findFirst({
         where: {
           memberId: profile.id,

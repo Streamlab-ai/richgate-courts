@@ -37,6 +37,7 @@ export interface SlotAvailability {
   available: boolean
   reason?: string            // why it is blocked
   pickleballSlotsLeft?: number
+  isBptlSlot?: boolean       // true = falls inside a BPTL-exclusive rule window
 }
 
 export interface ConflictCheckResult {

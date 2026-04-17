@@ -101,6 +101,15 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Guard role — block from all member routes (guards have their own /guard UI)
+  // Exception: /profile is allowed so guards can view/edit their own account.
+  if (session.role === 'guard') {
+    const guardBlockedRoutes = ['/home', '/reserve', '/reservations']
+    if (matchesRoute(pathname, guardBlockedRoutes)) {
+      return NextResponse.redirect(new URL('/guard', request.url))
+    }
+  }
+
   // Member routes — check status claim in JWT
   if (matchesRoute(pathname, MEMBER_ROUTES)) {
     if (!session.status || session.status === 'pending') {

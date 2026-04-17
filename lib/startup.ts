@@ -86,6 +86,41 @@ export async function runStartup() {
       ON CONFLICT (key) DO NOTHING
     `
 
+    // ── 10. Seed BPTL exclusive tennis rules (Mon–Fri 06:00–14:00, Sat–Sun 06:00–18:00)
+    //        Uses the fixed tennis court UUID from seed.ts. Idempotent — only inserts
+    //        missing rows (one per day_of_week × time window).
+    await db.$executeRaw`
+      INSERT INTO weekly_sport_rules
+        (id, court_id, day_of_week, sport_type, start_time, end_time, is_active, booker_type, created_at, updated_at)
+      SELECT
+        gen_random_uuid(),
+        '00000000-0000-0000-0001-000000000001',
+        g.dow,
+        'tennis',
+        g.t_start,
+        g.t_end,
+        true,
+        'bptl',
+        NOW(),
+        NOW()
+      FROM (VALUES
+        (1,'06:00','14:00'),
+        (2,'06:00','14:00'),
+        (3,'06:00','14:00'),
+        (4,'06:00','14:00'),
+        (5,'06:00','14:00'),
+        (0,'06:00','18:00'),
+        (6,'06:00','18:00')
+      ) AS g(dow, t_start, t_end)
+      WHERE NOT EXISTS (
+        SELECT 1 FROM weekly_sport_rules r
+        WHERE r.court_id   = '00000000-0000-0000-0001-000000000001'
+          AND r.sport_type = 'tennis'
+          AND r.booker_type = 'bptl'
+          AND r.day_of_week = g.dow
+      )
+    `
+
     console.log('[startup] ✅ Schema + seed checks complete')
   } catch (err) {
     // Non-fatal — log and continue. App still works; fixes will retry next cold start.

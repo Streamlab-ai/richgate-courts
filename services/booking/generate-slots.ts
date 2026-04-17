@@ -87,6 +87,10 @@ export async function generateSlots(
     : 0
 
   for (const { startTime, endTime } of grid) {
+    // isBptlSlot is true when this slot falls inside a BPTL-exclusive rule window.
+    // Declared here (outer loop scope) so the conflict-check block below can read it.
+    let isBptlSlot = false
+
     // ── Sport rule gate ──────────────────────────────────────────────────────
     if (todayRules.length > 0) {
       const bptlRule = todayRules.find(r =>
@@ -100,10 +104,12 @@ export async function generateSlots(
         timeToMinutes(endTime)   <= timeToMinutes(r.endTime)
       )
 
+      isBptlSlot = !!bptlRule
+
       if (bptlRule && !openRule) {
         // Slot is BPTL-exclusive
         if (callerMemberType !== 'bptl') {
-          results.push({ date, startTime, endTime, available: false, reason: 'BPTL reserved' })
+          results.push({ date, startTime, endTime, available: false, reason: 'BPTL reserved', isBptlSlot })
           continue
         }
         // BPTL caller on BPTL slot — fall through to conflict check below
@@ -124,11 +130,6 @@ export async function generateSlots(
     )
 
     if (sportType === 'tennis' || sportType === 'basketball') {
-      const isBptlSlot = todayRules.some(r =>
-        r.bookerType === 'bptl' &&
-        timeToMinutes(startTime) >= timeToMinutes(r.startTime) &&
-        timeToMinutes(endTime)   <= timeToMinutes(r.endTime)
-      )
       let hasConflict: boolean
       if (isBptlSlot && callerMemberType === 'bptl') {
         // Unlimited concurrent BPTL — only block if a non-BPTL booking exists
@@ -140,6 +141,7 @@ export async function generateSlots(
         date, startTime, endTime,
         available: !hasConflict,
         reason: hasConflict ? 'Slot already booked' : undefined,
+        isBptlSlot,
       })
     } else {
       // Pickleball
@@ -147,11 +149,11 @@ export async function generateSlots(
       const pbTaken = overlapping.filter(b => b.sportType === 'pickleball').length
 
       if (basketballOverlap) {
-        results.push({ date, startTime, endTime, available: false, reason: 'Basketball is booked for this slot', pickleballSlotsLeft: 0 })
+        results.push({ date, startTime, endTime, available: false, reason: 'Basketball is booked for this slot', pickleballSlotsLeft: 0, isBptlSlot })
       } else if (pbTaken >= pbCapacity) {
-        results.push({ date, startTime, endTime, available: false, reason: 'All pickleball slots are full', pickleballSlotsLeft: 0 })
+        results.push({ date, startTime, endTime, available: false, reason: 'All pickleball slots are full', pickleballSlotsLeft: 0, isBptlSlot })
       } else {
-        results.push({ date, startTime, endTime, available: true, pickleballSlotsLeft: pbCapacity - pbTaken })
+        results.push({ date, startTime, endTime, available: true, pickleballSlotsLeft: pbCapacity - pbTaken, isBptlSlot })
       }
     }
   }

@@ -65,9 +65,7 @@ export async function proxy(request: NextRequest) {
   // Public routes — send logged-in users away
   if (matchesRoute(pathname, PUBLIC_ROUTES)) {
     if (session) {
-      const dest = (session.role === 'admin' || session.role === 'super_admin') ? '/dashboard'
-                 : session.role === 'guard' ? '/guard'
-                 : '/home'
+      const dest = session.role === 'guard' ? '/guard' : '/home'
       return NextResponse.redirect(new URL(dest, request.url))
     }
     return NextResponse.next()

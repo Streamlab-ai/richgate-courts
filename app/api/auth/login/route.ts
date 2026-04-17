@@ -41,8 +41,6 @@ export async function POST(request: NextRequest) {
     let redirect: string
     if (profile.role === 'guard') {
       redirect = '/guard'
-    } else if (profile.role === 'admin' || profile.role === 'super_admin') {
-      redirect = '/dashboard'
     } else {
       redirect = profile.status === 'active' ? '/home' : '/pending'
     }

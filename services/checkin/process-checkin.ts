@@ -64,7 +64,7 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   await db.checkinEvent.create({
     data: {
       bookingId: booking.id,
-      memberId: booking.memberId,
+      memberId: booking.memberId ?? booking.id,  // guest fallback
       checkedInAt: now,
       checkedInBy: actorId ?? null,
       method,
@@ -80,6 +80,6 @@ export async function processCheckin(input: CheckinInput): Promise<CheckinResult
   return {
     ok: true,
     bookingId: booking.id,
-    memberName: booking.member.fullName,
+    memberName: booking.member?.fullName ?? booking.guestName ?? 'Guest',
   }
 }

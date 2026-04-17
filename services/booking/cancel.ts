@@ -41,7 +41,7 @@ export async function cancelBooking(input: CancelInput): Promise<{ ok: boolean; 
 
   // Notify the member
   await sendNotification({
-    profileId: booking.memberId,
+    profileId: booking.memberId ?? booking.id,   // guest bookings have no memberId
     type: 'booking_cancelled',
     subject: `Booking cancelled — ${booking.court.name}`,
     body: `Your ${booking.sportType} booking on ${booking.date} at ${booking.startTime}–${booking.endTime} has been cancelled.${reason ? ` Reason: ${reason}` : ''}`,

@@ -42,13 +42,14 @@ export async function GET(request: NextRequest) {
       orderBy: { _sum: { durationMinutes: 'desc' } },
       take: 20,
     })
+    const memberIds = topMembers.map(m => m.memberId).filter((id): id is string => id !== null)
     const profiles = await db.profile.findMany({
-      where: { id: { in: topMembers.map(m => m.memberId) } },
+      where: { id: { in: memberIds } },
       select: { id: true, fullName: true, memberId: true },
     })
     const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]))
     const data = topMembers.map(m => ({
-      ...profileMap[m.memberId],
+      ...(m.memberId ? profileMap[m.memberId] : {}),
       bookingCount: m._count.id,
       totalHours: ((m._sum.durationMinutes ?? 0) / 60).toFixed(1),
     }))

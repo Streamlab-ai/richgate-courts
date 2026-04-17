@@ -7,13 +7,19 @@ export default async function ReservePage() {
 
   const memberType = profile.role
 
+  // Find actual tennis court (don't hardcode ID)
+  const tennisCourt = await db.court.findFirst({
+    where: { courtType: 'tennis', isActive: true },
+    select: { id: true },
+  })
+
   const [bptlSetting, tennisRateSetting, bptlRules] = await Promise.all([
     db.appSetting.findUnique({ where: { key: 'price_per_day_bptl_tennis' } }).catch(() => null),
     db.appSetting.findUnique({ where: { key: 'price_per_hour_tennis' } }).catch(() => null),
-    memberType === 'bptl'
+    (memberType === 'bptl' || memberType === 'hoa') && tennisCourt
       ? db.weeklySportRule.findMany({
           where: {
-            courtId:   '00000000-0000-0000-0001-000000000001',
+            courtId:   tennisCourt.id,
             sportType: 'tennis',
             bookerType: 'bptl',
             isActive:  true,

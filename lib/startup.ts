@@ -95,13 +95,23 @@ export async function runStartup() {
     ON CONFLICT (key) DO NOTHING
   `)
 
-  // ── 10. Seed BPTL exclusive tennis rules ─────────────────────────────────────
+  // ── 9b. Fix orphaned BPTL rules: update old hardcoded court ID to actual tennis court ──
+  await step('fix orphaned BPTL rule court IDs', () => db.$executeRaw`
+    UPDATE weekly_sport_rules
+    SET    court_id = (SELECT id FROM courts WHERE court_type = 'tennis' AND is_active = true LIMIT 1),
+           updated_at = NOW()
+    WHERE  sport_type = 'tennis'
+      AND  booker_type = 'bptl'
+      AND  court_id NOT IN (SELECT id FROM courts WHERE court_type = 'tennis' AND is_active = true)
+  `)
+
+  // ── 10. Seed BPTL exclusive tennis rules (dynamic court ID lookup) ────────────
   await step('seed BPTL tennis rules', () => db.$executeRaw`
     INSERT INTO weekly_sport_rules
       (id, court_id, day_of_week, sport_type, start_time, end_time, is_active, booker_type, created_at, updated_at)
     SELECT
       gen_random_uuid(),
-      '00000000-0000-0000-0001-000000000001',
+      tc.id,
       g.dow,
       'tennis',
       g.t_start,
@@ -110,7 +120,8 @@ export async function runStartup() {
       'bptl',
       NOW(),
       NOW()
-    FROM (VALUES
+    FROM (SELECT id FROM courts WHERE court_type = 'tennis' AND is_active = true LIMIT 1) tc
+    CROSS JOIN (VALUES
       (1,'06:00','12:00'),
       (2,'06:00','12:00'),
       (3,'06:00','12:00'),
@@ -121,19 +132,18 @@ export async function runStartup() {
     ) AS g(dow, t_start, t_end)
     WHERE NOT EXISTS (
       SELECT 1 FROM weekly_sport_rules r
-      WHERE r.court_id   = '00000000-0000-0000-0001-000000000001'
+      WHERE r.court_id   = tc.id
         AND r.sport_type = 'tennis'
         AND r.booker_type = 'bptl'
         AND r.day_of_week = g.dow
     )
   `)
 
-  // ── 11. Fix BPTL Mon-Fri end time: 14:00 → 12:00 ─────────────────────────────
+  // ── 11. Fix BPTL Mon-Fri end time: 14:00 → 12:00 (dynamic court ID) ──────────
   await step('fix BPTL Mon-Fri end time to 12:00', () => db.$executeRaw`
     UPDATE weekly_sport_rules
     SET    end_time = '12:00', updated_at = NOW()
-    WHERE  court_id   = '00000000-0000-0000-0001-000000000001'
-      AND  sport_type = 'tennis'
+    WHERE  sport_type = 'tennis'
       AND  booker_type = 'bptl'
       AND  day_of_week IN (1,2,3,4,5)
       AND  end_time = '14:00'

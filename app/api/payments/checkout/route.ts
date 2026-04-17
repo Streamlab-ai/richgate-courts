@@ -4,6 +4,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
 import crypto from 'crypto'
 
 const PAYMENT_HOLD_MINUTES = 15  // slot held while guest pays
@@ -38,6 +39,13 @@ function calcAmount(sportType: string, durationMinutes: number, prices: Record<s
 }
 
 export async function POST(request: NextRequest) {
+  // Rate limit: 10 checkout attempts per minute per IP (prevents slot exhaustion)
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  const { limited } = rateLimit(`checkout:${ip}`, 10, 60_000)
+  if (limited) {
+    return NextResponse.json({ error: 'Too many requests. Please try again shortly.' }, { status: 429 })
+  }
+
   const body = await request.json()
   const { courtId, sportType, date, startTime, endTime, guestName, guestEmail, guestPhone } = body
 

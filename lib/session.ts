@@ -4,9 +4,18 @@ import { cookies } from 'next/headers'
 const COOKIE_NAME = 'auth-token'
 const SESSION_DURATION = 60 * 60 * 24 * 7 // 7 days in seconds
 
+const DEV_SECRET_PREFIX = 'richgate-local-dev'
+
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET
   if (!secret) throw new Error('SESSION_SECRET env var is not set')
+  // Block the known dev default in production to prevent JWT forgery
+  if (process.env.NODE_ENV === 'production' && secret.startsWith(DEV_SECRET_PREFIX)) {
+    throw new Error('SESSION_SECRET must be changed from the dev default in production. Use: openssl rand -base64 48')
+  }
+  if (secret.length < 32) {
+    throw new Error('SESSION_SECRET must be at least 32 characters')
+  }
   return new TextEncoder().encode(secret)
 }
 

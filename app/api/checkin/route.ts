@@ -12,10 +12,11 @@ export async function POST(request: NextRequest) {
 
   if (!qrToken) return NextResponse.json({ error: 'qrToken is required' }, { status: 400 })
 
+  const isStaff = session.role === 'admin' || session.role === 'super_admin' || session.role === 'guard'
   const result = await processCheckin({
     qrToken,
-    actorId: session.role === 'admin' ? session.sub : undefined,
-    method: session.role === 'admin' ? 'manual' : 'qr',
+    actorId: isStaff ? session.sub : undefined,
+    method: isStaff ? 'manual' : 'qr',
   })
 
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 })

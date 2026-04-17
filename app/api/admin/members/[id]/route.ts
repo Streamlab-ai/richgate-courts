@@ -28,8 +28,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'The super admin role and status cannot be changed' }, { status: 403 })
   }
 
-  // Only super admin can promote another user to admin
-  if (role === 'admin' && !callerIsSuperAdmin) {
+  // Only super admin can promote to admin or super_admin
+  if ((role === 'admin' || role === 'super_admin') && !callerIsSuperAdmin) {
     return NextResponse.json({ error: 'Only the super admin can grant admin access' }, { status: 403 })
   }
 
@@ -52,7 +52,11 @@ export async function PATCH(
   if (role   && !targetIsSuperAdmin) data.role   = role
   if (password)            data.passwordHash = await hash(password, 12)
 
-  const updated = await db.profile.update({ where: { id }, data })
+  const updated = await db.profile.update({
+    where: { id },
+    data,
+    select: { id: true, email: true, fullName: true, phone: true, role: true, status: true, memberId: true },
+  })
   return NextResponse.json({ ok: true, member: updated })
 }
 

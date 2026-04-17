@@ -14,7 +14,10 @@ function verifySignature(rawBody: string, sigHeader: string | null, webhookSecre
   if (!timestamp || !testSignature) return false
   const payload = `${timestamp}.${rawBody}`
   const expected = crypto.createHmac('sha256', webhookSecret).update(payload).digest('hex')
-  return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(testSignature))
+  const a = Buffer.from(expected)
+  const b = Buffer.from(testSignature)
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(a, b)
 }
 
 export async function POST(request: NextRequest) {
@@ -22,8 +25,13 @@ export async function POST(request: NextRequest) {
   const sigHeader = request.headers.get('paymongo-signature')
   const webhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET
 
-  // Verify signature if webhook secret is configured
-  if (webhookSecret && !verifySignature(rawBody, sigHeader, webhookSecret)) {
+  // Reject all webhooks if secret is not configured (prevent unsigned forgeries)
+  if (!webhookSecret) {
+    console.error('[payments/webhook] PAYMONGO_WEBHOOK_SECRET not set — rejecting request')
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 })
+  }
+
+  if (!verifySignature(rawBody, sigHeader, webhookSecret)) {
     console.warn('[payments/webhook] Signature verification failed')
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }

@@ -2,15 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { hash } from '@node-rs/bcrypt'
 import { db } from '@/lib/db'
 import { createSession } from '@/lib/session'
+import { rateLimit } from '@/lib/rate-limit'
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 registrations per minute per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const { limited } = rateLimit(`register:${ip}`, 3, 60_000)
+    if (limited) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429 },
+      )
+    }
+
     const body = await request.json()
     const { email, password, fullName, phone } = body
 
     if (!email || !password || !fullName) {
       return NextResponse.json(
         { error: 'email, password, and fullName are required' },
+        { status: 400 }
+      )
+    }
+
+    if (!EMAIL_RE.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
         { status: 400 }
       )
     }

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const series = await db.recurrenceSeries.findMany({
-    where: session.role === 'admin' ? {} : { memberId: session.sub },
+    where: (session.role === 'admin' || session.role === 'super_admin') ? {} : { memberId: session.sub },
     orderBy: { createdAt: 'desc' },
   })
   return NextResponse.json({ series })
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  if (session.status !== 'active' && session.role !== 'admin') {
+  if (session.status !== 'active' && session.role !== 'admin' && session.role !== 'super_admin') {
     return NextResponse.json({ error: 'Account is not active' }, { status: 403 })
   }
 
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     endDate,
     startTime,
     endTime,
-    adminOverride: session.role === 'admin',
+    adminOverride: session.role === 'admin' || session.role === 'super_admin',
   })
 
   return NextResponse.json(result, { status: 201 })

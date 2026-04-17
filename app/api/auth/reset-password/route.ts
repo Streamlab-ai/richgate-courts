@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SignJWT } from 'jose'
 import { db } from '@/lib/db'
 import { sendNotification } from '@/services/notifications'
+import { rateLimit } from '@/lib/rate-limit'
 
 function getSecret(): Uint8Array {
   const secret = process.env.SESSION_SECRET
@@ -14,6 +15,13 @@ function getSecret(): Uint8Array {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 reset requests per hour per IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+    const { limited } = rateLimit(`reset:${ip}`, 3, 3_600_000)
+    if (limited) {
+      return NextResponse.json({ error: 'Too many reset requests. Please try again later.' }, { status: 429 })
+    }
+
     const { email } = await request.json()
 
     if (!email) {

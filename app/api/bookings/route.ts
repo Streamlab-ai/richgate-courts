@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Admin can override member requirement and set adminOverride flag
-  const isAdmin = session.role === 'admin'
+  const isAdmin = session.role === 'admin' || session.role === 'super_admin'
   const memberId = isAdmin ? (bodyMemberId || session.sub) : session.sub
   const adminOverride = isAdmin ? (bodyAdminOverride ?? false) : false
 

@@ -35,10 +35,13 @@ Open **http://localhost:3000**
 
 ### Default accounts
 
-| Role   | Email                    | Password      |
-|--------|--------------------------|---------------|
-| Admin  | admin@richgate.local     | Admin1234!    |
-| Member | member@richgate.local    | Member1234!   |
+| Role         | Email                        | Password      |
+|--------------|------------------------------|---------------|
+| Super Admin  | superadmin@richgate.local    | Admin1234!    |
+| Admin        | admin-demo@richgate.local    | admin1234     |
+| HOA Member   | member@richgate.local        | Member1234!   |
+| BPTL Member  | bptl-demo@richgate.local     | bptl1234      |
+| Guard        | guard@richgate.local         | guard1234     |
 
 ---
 

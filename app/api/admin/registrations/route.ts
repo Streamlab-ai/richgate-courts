@@ -6,7 +6,7 @@ import { db } from '@/lib/db'
 import { sendNotification } from '@/services/notifications'
 
 function adminOnly(session: Awaited<ReturnType<typeof getSession>>) {
-  if (!session || session.role !== 'admin') return true
+  if (!session || (session.role !== 'admin' && session.role !== 'super_admin')) return true
   return false
 }
 

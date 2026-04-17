@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { hash } from '@node-rs/bcrypt'
 
 const db = new PrismaClient()
 
@@ -118,52 +118,108 @@ async function main() {
   // ── Super Admin (always upsert — ensures memberId = RG-000001) ───────────────
   // This is critical: isSuperAdmin checks memberId === 'RG-000001'.
   // If the account was created before memberId was set, this corrects it.
-  const adminEmail = 'admin@richgate.local'
-  const existingAdmin = await db.profile.findUnique({ where: { email: adminEmail } })
+  // ── Super Admin ──────────────────────────────────────────────────────────────
+  const superAdminEmail = 'superadmin@richgate.local'
+  const existingSA = await db.profile.findUnique({ where: { email: superAdminEmail } })
 
-  if (!existingAdmin) {
-    const passwordHash = await bcrypt.hash('Admin1234!', 12)
+  if (!existingSA) {
+    const passwordHash = await hash('Admin1234!', 12)
     await db.profile.create({
       data: {
-        email: adminEmail,
+        email: superAdminEmail,
         passwordHash,
         fullName: 'Super Admin',
-        role: 'admin',
+        role: 'super_admin',
         status: 'active',
         memberId: 'RG-000001',
       },
     })
-    console.log('✅ Super admin created — admin@richgate.local / Admin1234!')
-  } else if (existingAdmin.memberId !== 'RG-000001') {
-    // Fix missing or wrong memberId — this is what makes isSuperAdmin work
-    await db.profile.update({
-      where: { email: adminEmail },
-      data:  { memberId: 'RG-000001' },
-    })
-    console.log(`✅ Super admin memberId fixed: ${existingAdmin.memberId ?? 'null'} → RG-000001`)
+    console.log('✅ Super admin created — superadmin@richgate.local / Admin1234!')
   } else {
-    console.log('⏭  Super admin already correct')
+    console.log('⏭  Super admin already exists')
   }
 
-  // ── Demo member ──────────────────────────────────────────────────────────────
+  // ── Admin Demo ──────────────────────────────────────────────────────────────
+  const adminDemoEmail = 'admin-demo@richgate.local'
+  const existingAD = await db.profile.findUnique({ where: { email: adminDemoEmail } })
+
+  if (!existingAD) {
+    const passwordHash = await hash('admin1234', 12)
+    await db.profile.create({
+      data: {
+        email: adminDemoEmail,
+        passwordHash,
+        fullName: 'Admin Demo',
+        role: 'admin',
+        status: 'active',
+        memberId: 'RG-000002',
+      },
+    })
+    console.log('✅ Admin demo created — admin-demo@richgate.local / admin1234')
+  } else {
+    console.log('⏭  Admin demo already exists')
+  }
+
+  // ── HOA Demo Member ─────────────────────────────────────────────────────────
   const memberEmail = 'member@richgate.local'
   const existingMember = await db.profile.findUnique({ where: { email: memberEmail } })
 
   if (!existingMember) {
-    const passwordHash = await bcrypt.hash('Member1234!', 12)
+    const passwordHash = await hash('Member1234!', 12)
     await db.profile.create({
       data: {
         email: memberEmail,
         passwordHash,
         fullName: 'Jane Smith',
-        role: 'member',
+        role: 'hoa',
         status: 'active',
-        memberId: 'RG-000002',
+        memberId: 'RG-000003',
       },
     })
-    console.log('✅ Demo member created — member@richgate.local / Member1234!')
+    console.log('✅ HOA demo member created — member@richgate.local / Member1234!')
   } else {
-    console.log('⏭  Demo member already exists')
+    console.log('⏭  HOA demo member already exists')
+  }
+
+  // ── BPTL Demo Member ────────────────────────────────────────────────────────
+  const bptlEmail = 'bptl-demo@richgate.local'
+  const existingBptl = await db.profile.findUnique({ where: { email: bptlEmail } })
+
+  if (!existingBptl) {
+    const passwordHash = await hash('bptl1234', 12)
+    await db.profile.create({
+      data: {
+        email: bptlEmail,
+        passwordHash,
+        fullName: 'BPTL Demo Member',
+        role: 'bptl',
+        status: 'active',
+        memberId: 'RG-000004',
+      },
+    })
+    console.log('✅ BPTL demo created — bptl-demo@richgate.local / bptl1234')
+  } else {
+    console.log('⏭  BPTL demo already exists')
+  }
+
+  // ── Guard Demo ──────────────────────────────────────────────────────────────
+  const guardEmail = 'guard@richgate.local'
+  const existingGuard = await db.profile.findUnique({ where: { email: guardEmail } })
+
+  if (!existingGuard) {
+    const passwordHash = await hash('guard1234', 12)
+    await db.profile.create({
+      data: {
+        email: guardEmail,
+        passwordHash,
+        fullName: 'Security Guard',
+        role: 'guard',
+        status: 'active',
+      },
+    })
+    console.log('✅ Guard demo created — guard@richgate.local / guard1234')
+  } else {
+    console.log('⏭  Guard demo already exists')
   }
 
   console.log('\n🏁 Seed complete.\n')

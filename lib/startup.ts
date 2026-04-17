@@ -5,6 +5,7 @@
 // Each step has its own try-catch so failures are isolated.
 
 import { db } from './db'
+import { hash } from '@node-rs/bcrypt'
 
 async function step(name: string, fn: () => Promise<unknown>) {
   try {
@@ -64,11 +65,11 @@ export async function runStartup() {
     ON CONFLICT (key) DO NOTHING
   `)
 
-  // ── 5. Fix super admin memberId ──────────────────────────────────────────────
+  // ── 5. Fix super admin memberId (handles both old and new email) ─────────────
   await step('fix super admin memberId', () => db.$executeRaw`
     UPDATE profiles
     SET    member_id = 'RG-000001'
-    WHERE  email = 'admin@richgate.local'
+    WHERE  email IN ('admin@richgate.local', 'superadmin@richgate.local')
       AND  (member_id IS NULL OR member_id != 'RG-000001')
   `)
 
@@ -153,6 +154,103 @@ export async function runStartup() {
     UPDATE profiles SET role = 'super_admin'
     WHERE member_id = 'RG-000001' AND role = 'admin'
   `)
+
+  // ── 13. Rename super admin email: admin@richgate.local → superadmin@richgate.local
+  await step('rename super admin email', () => db.$executeRaw`
+    UPDATE profiles
+    SET    email = 'superadmin@richgate.local'
+    WHERE  email = 'admin@richgate.local'
+      AND  member_id = 'RG-000001'
+  `)
+
+  // ── 14. Reset super admin password + ensure role = super_admin ───────────────
+  await step('reset super admin password', async () => {
+    const pw = await hash('Admin1234!', 12)
+    await db.$executeRaw`
+      UPDATE profiles
+      SET    password_hash = ${pw}, role = 'super_admin'
+      WHERE  email = 'superadmin@richgate.local'
+        AND  member_id = 'RG-000001'
+    `
+  })
+
+  // ── 15. Ensure admin-demo account exists ─────────────────────────────────────
+  await step('ensure admin-demo account', async () => {
+    const exists = await db.profile.findUnique({ where: { email: 'admin-demo@richgate.local' } })
+    if (!exists) {
+      const pw = await hash('admin1234', 12)
+      // Find next memberId
+      const last = await db.profile.findFirst({
+        where: { memberId: { not: null } },
+        orderBy: { memberId: 'desc' },
+      })
+      const nextNum = last?.memberId ? parseInt(last.memberId.replace('RG-', '')) + 1 : 2
+      const memberId = `RG-${String(nextNum).padStart(6, '0')}`
+      await db.profile.create({
+        data: {
+          email: 'admin-demo@richgate.local',
+          passwordHash: pw,
+          fullName: 'Admin Demo',
+          role: 'admin',
+          status: 'active',
+          memberId,
+        },
+      })
+    }
+  })
+
+  // ── 16. Ensure guard demo account exists ─────────────────────────────────────
+  await step('ensure guard demo account', async () => {
+    const exists = await db.profile.findUnique({ where: { email: 'guard@richgate.local' } })
+    if (!exists) {
+      const pw = await hash('guard1234', 12)
+      await db.profile.create({
+        data: {
+          email: 'guard@richgate.local',
+          passwordHash: pw,
+          fullName: 'Security Guard',
+          role: 'guard',
+          status: 'active',
+        },
+      })
+    } else if (exists.role !== 'guard') {
+      await db.profile.update({ where: { email: 'guard@richgate.local' }, data: { role: 'guard' } })
+    }
+  })
+
+  // ── 17. Ensure BPTL demo account exists ──────────────────────────────────────
+  await step('ensure bptl demo account', async () => {
+    const exists = await db.profile.findUnique({ where: { email: 'bptl-demo@richgate.local' } })
+    if (!exists) {
+      const pw = await hash('bptl1234', 12)
+      const last = await db.profile.findFirst({
+        where: { memberId: { not: null } },
+        orderBy: { memberId: 'desc' },
+      })
+      const nextNum = last?.memberId ? parseInt(last.memberId.replace('RG-', '')) + 1 : 2
+      const memberId = `RG-${String(nextNum).padStart(6, '0')}`
+      await db.profile.create({
+        data: {
+          email: 'bptl-demo@richgate.local',
+          passwordHash: pw,
+          fullName: 'BPTL Demo Member',
+          role: 'bptl',
+          status: 'active',
+          memberId,
+        },
+      })
+    } else if (exists.role !== 'bptl') {
+      await db.profile.update({ where: { email: 'bptl-demo@richgate.local' }, data: { role: 'bptl' } })
+    }
+  })
+
+  // ── 18. Ensure HOA demo account (member@richgate.local) has correct role ─────
+  await step('ensure hoa demo role', async () => {
+    const exists = await db.profile.findUnique({ where: { email: 'member@richgate.local' } })
+    if (exists && exists.role !== 'hoa' && exists.role !== 'admin' && exists.role !== 'super_admin') {
+      await db.profile.update({ where: { email: 'member@richgate.local' }, data: { role: 'hoa' } })
+    }
+  })
 
   console.log('[startup] ✅ Schema + seed checks complete')
 }

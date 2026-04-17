@@ -13,6 +13,7 @@ interface Slot { startTime: string; endTime: string; available: boolean; reason?
 interface Props {
   courts: Court[]
   pricing: Pricing
+  monetizationEnabled: boolean
 }
 
 const SPORT_OPTIONS: { value: SportType; label: string; icon: string }[] = [
@@ -25,7 +26,7 @@ function todayString() {
   return new Date().toISOString().slice(0, 10)
 }
 
-export default function GuestBookingForm({ courts, pricing }: Props) {
+export default function GuestBookingForm({ courts, pricing, monetizationEnabled }: Props) {
   // Step 1: court + sport + date + time slots
   const [step, setStep]               = useState<1 | 2>(1)
   const [courtId, setCourtId]         = useState(courts[0]?.id ?? '')
@@ -154,7 +155,7 @@ export default function GuestBookingForm({ courts, pricing }: Props) {
                   <span className="text-lg">{s.icon}</span>
                   {s.label}
                   <span className={`text-[10px] ${sport === s.value ? 'text-zinc-300' : 'text-zinc-400'}`}>
-                    ₱{pricing[s.value]}/hr
+                    {monetizationEnabled ? `₱${pricing[s.value]}/hr` : 'Free'}
                   </span>
                 </button>
               ))}
@@ -218,7 +219,9 @@ export default function GuestBookingForm({ courts, pricing }: Props) {
                 </p>
                 <p className="text-xs text-emerald-600">{date} · {startTime} – {endTime}</p>
               </div>
-              <p className="text-lg font-bold text-emerald-700">₱{totalPrice}</p>
+              <p className="text-lg font-bold text-emerald-700">
+                {monetizationEnabled ? `₱${totalPrice}` : 'Free'}
+              </p>
             </div>
           )}
 
@@ -243,7 +246,7 @@ export default function GuestBookingForm({ courts, pricing }: Props) {
               <p className="text-xs text-zinc-500">{date} · {startTime} – {endTime}</p>
             </div>
             <div className="text-right">
-              <p className="text-base font-bold">₱{totalPrice}</p>
+              <p className="text-base font-bold">{monetizationEnabled ? `₱${totalPrice}` : 'Free'}</p>
               <button type="button" onClick={() => setStep(1)} className="text-xs text-zinc-400 hover:text-zinc-700 underline-offset-2 hover:underline">
                 Change
               </button>
@@ -288,7 +291,7 @@ export default function GuestBookingForm({ courts, pricing }: Props) {
           )}
 
           <Button type="submit" size="lg" loading={loading} className="w-full mt-1">
-            Pay ₱{totalPrice} via GCash
+            {monetizationEnabled ? `Pay ₱${totalPrice} via GCash` : 'Confirm Booking'}
           </Button>
 
           <button type="button" onClick={() => setStep(1)} className="text-sm text-zinc-400 hover:text-zinc-600 text-center transition-colors">

@@ -1,5 +1,6 @@
-// Public guest booking page — only active when monetization is ON.
-// When OFF, shows a "members only" message.
+// Public guest booking page — always accessible.
+// When monetization is OFF, booking is free (no payment).
+// When monetization is ON, guests pay via GCash.
 
 import { db } from '@/lib/db'
 import Link from 'next/link'
@@ -40,37 +41,11 @@ export default async function GuestBookPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const { error } = await searchParams
-  const monetizationEnabled = await getMonetizationStatus()
-
-  // ── Monetization OFF — guest booking is closed ────────────────────────────
-  if (!monetizationEnabled) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen px-5 py-12 text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-zinc-100 rounded-2xl mb-4">
-          <span className="text-3xl">🔒</span>
-        </div>
-        <h1 className="text-xl font-bold mb-2">Court bookings for members only</h1>
-        <p className="text-sm text-zinc-500 mb-8 max-w-xs">
-          Online guest bookings are not available at this time. Please contact the facility or sign in with your member account.
-        </p>
-        <Link
-          href="/login"
-          className="px-6 py-3 bg-black text-white rounded-2xl text-sm font-medium hover:bg-zinc-800 transition-colors"
-        >
-          Member sign in
-        </Link>
-        <p className="text-center text-xs text-zinc-400 mt-10">
-          {BRANDING.shortName} · Built by{' '}
-          <a href={BRANDING.createdByUrlFull} target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600">
-            {BRANDING.createdBy}
-          </a>
-        </p>
-      </div>
-    )
-  }
-
-  // ── Monetization ON — show booking form ───────────────────────────────────
-  const [courts, pricing] = await Promise.all([getCourts(), getPricing()])
+  const [monetizationEnabled, courts, pricing] = await Promise.all([
+    getMonetizationStatus(),
+    getCourts(),
+    getPricing(),
+  ])
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen px-5 py-10">
@@ -90,7 +65,7 @@ export default async function GuestBookPage({
           </p>
         )}
 
-        <GuestBookingForm courts={courts} pricing={pricing} />
+        <GuestBookingForm courts={courts} pricing={pricing} monetizationEnabled={monetizationEnabled} />
 
         <p className="text-center text-sm text-zinc-400 mt-6">
           Already a member?{' '}

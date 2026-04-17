@@ -29,12 +29,19 @@ export async function generateSlots(
       }))
   }
 
-  // Past date?
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
+  // All time comparisons use Asia/Manila (PHT, UTC+8) because
+  // court operating hours and slot times are in Philippine local time,
+  // but Vercel serverless runs in UTC.
+  const nowPHT = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }))
+  const todayPHT = new Date(nowPHT)
+  todayPHT.setHours(0, 0, 0, 0)
   const bookingDate = new Date(date + 'T00:00:00')
-  const diffDays = Math.floor((bookingDate.getTime() - today.getTime()) / 86_400_000)
+  const diffDays = Math.floor((bookingDate.getTime() - todayPHT.getTime()) / 86_400_000)
   if (diffDays < 0) return []
+
+  // Current time in PHT minutes (for filtering past slots when date === today)
+  const isToday = diffDays === 0
+  const nowMinutes = isToday ? nowPHT.getHours() * 60 + nowPHT.getMinutes() : 0
 
   // Beyond advance-booking horizon?
   if (diffDays > settings.maxAdvanceBookingDays) {
@@ -64,6 +71,13 @@ export async function generateSlots(
     }),
   ])
 
+  // Debug: log rule state to diagnose BPTL visibility issues
+  if (sportType === 'tennis') {
+    const bptlRuleCount = todayRules.filter(r => r.bookerType === 'bptl').length
+    const openRuleCount = todayRules.filter(r => !r.bookerType).length
+    console.log(`[slots] tennis court=${courtId.slice(0,8)} day=${dayOfWeek} caller=${callerMemberType} rules=${todayRules.length} (bptl=${bptlRuleCount} open=${openRuleCount}) anyRulesExist=${!!anyRulesExist}`)
+  }
+
   const grid = buildSlotGrid(settings.openTimeStart, settings.openTimeEnd, settings.slotDurationMinutes)
   const results: SlotAvailability[] = []
 
@@ -87,6 +101,12 @@ export async function generateSlots(
     : 0
 
   for (const { startTime, endTime } of grid) {
+    // ── Past-time gate (today only) ─────────────────────────────────────────
+    if (isToday && timeToMinutes(startTime) < nowMinutes) {
+      results.push({ date, startTime, endTime, available: false, reason: 'Time has passed' })
+      continue
+    }
+
     // isBptlSlot is true when this slot falls inside a BPTL-exclusive rule window.
     // Declared here (outer loop scope) so the conflict-check block below can read it.
     let isBptlSlot = false

@@ -91,6 +91,16 @@ export default function LoginPage() {
           </Link>
         </p>
 
+        <div className="mt-5 pt-5 border-t border-zinc-200 text-center">
+          <p className="text-xs text-zinc-400 mb-2">Just want to book a court?</p>
+          <Link
+            href="/book"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-sm font-medium rounded-xl transition-colors"
+          >
+            🎾 Book as guest
+          </Link>
+        </div>
+
         <p className="text-center text-xs text-zinc-400 mt-10">
           Built by{' '}
           <a href="https://streamlabai.com" target="_blank" rel="noopener noreferrer" className="hover:text-zinc-600 transition-colors">

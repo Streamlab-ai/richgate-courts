@@ -51,6 +51,34 @@ export async function POST(request: NextRequest) {
   // Fetch profile to get role
   const profile = await db.profile.findUnique({ where: { id: memberId }, select: { id: true, role: true, fullName: true, email: true } })
 
+  // ── HOA BPTL-Exclusive flow (free, no limits) ────────────────────────────
+  if (bookingMode === 'bptl_exclusive' && profile && profile.role !== 'bptl' && !isAdmin) {
+    // HOA/admin members booking the BPTL exclusive time block — free, single booking
+    const bookingDate = slots[0]?.date
+    const startTime = slots[0]?.startTime
+    const endTime = slots[slots.length - 1]?.endTime ?? slots[0]?.endTime
+    const dur = slots.reduce((acc: number, s: TimeSlot) => {
+      const [sh, sm] = s.startTime.split(':').map(Number)
+      const [eh, em] = s.endTime.split(':').map(Number)
+      return acc + (eh * 60 + em) - (sh * 60 + sm)
+    }, 0)
+    const qrToken = crypto.randomBytes(16).toString('hex')
+    const booking = await db.booking.create({
+      data: {
+        memberId: profile.id,
+        courtId, sportType,
+        date: bookingDate,
+        startTime,
+        endTime,
+        durationMinutes: dur,
+        status: 'confirmed',
+        bookerType: 'hoa',
+        qrToken,
+      },
+    })
+    return NextResponse.json({ ok: true, bookings: [booking], mode: 'hoa_bptl_free' })
+  }
+
   // ── BPTL Payment flow ────────────────────────────────────────────────────
   if (profile?.role === 'bptl' && !isAdmin) {
     const court = await db.court.findUnique({ where: { id: courtId }, select: { courtType: true } })

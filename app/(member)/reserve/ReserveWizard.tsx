@@ -288,15 +288,15 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
         <button
           onClick={() => {
             setBookingMode('bptl_exclusive')
-            // Auto-select all available BPTL slots — skip to confirm (no slot picking)
-            const bptlSlots = slots.filter(s => s.isBptlSlot && s.available)
-            if (bptlSlots.length > 0) {
-              setSelected(bptlSlots)
+            // BPTL exclusive is a single indivisible time block — no slot picking.
+            // Build one virtual slot from the schedule rule for this day.
+            const win = getBptlWindow(bptlTennisSchedule, date)
+            if (win) {
+              setSelected([{ date, startTime: win.startTime, endTime: win.endTime, available: true, isBptlSlot: true }])
               setStep('confirm')
             } else {
-              // No BPTL slots available — show empty slots view
               setSelected([])
-              setStep('slots')
+              setStep('slots') // fallback — no exclusive window on this day
             }
           }}
           className="text-left bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 hover:border-emerald-400 active:scale-95 transition-all"
@@ -305,7 +305,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
             <div>
               <p className="font-semibold text-emerald-900">🎾 BPTL Exclusive Slot</p>
               <p className="text-xs text-emerald-600 mt-0.5">
-                {isHoa ? 'Members-only tennis hours' : 'Reserved for BPTL members only'}
+                Reserved for BPTL members and Richgate homeowners only
               </p>
             </div>
             <span className={clsx(
@@ -479,17 +479,17 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
         <p className="text-zinc-500 text-sm mb-6">{court?.name} · {sport}</p>
 
         {/* BPTL Exclusive: show single time block instead of individual slots */}
-        {isBptlExclusive && bptlWindow && selected.length > 0 ? (
+        {isBptlExclusive && selected.length > 0 ? (
           <Card className="mb-5">
             <CardContent className="pt-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <p className="font-medium text-sm">{date}</p>
+                  <p className="font-medium text-sm">{selected[0].date}</p>
                   <p className="text-xs text-zinc-500">
-                    {fmtTime(bptlWindow.startTime)} – {fmtTime(bptlWindow.endTime)}
+                    {fmtTime(selected[0].startTime)} – {fmtTime(selected[0].endTime)}
                   </p>
                   <p className="text-xs text-emerald-600 mt-1 font-medium">
-                    BPTL Exclusive Access · {selected.length} slot{selected.length > 1 ? 's' : ''}
+                    BPTL Exclusive Access
                   </p>
                 </div>
                 <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">

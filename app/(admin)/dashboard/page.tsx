@@ -10,7 +10,7 @@ export default async function AdminDashboardPage() {
 
   const [pendingReg, totalMembers, todayBookings, waitlistCount, pendingCheckins] = await Promise.all([
     db.registrationRequest.count({ where: { status: 'pending' } }),
-    db.profile.count({ where: { role: 'member', status: 'active' } }),
+    db.profile.count({ where: { role: { in: ['hoa', 'bptl'] }, status: 'active' } }),
     db.booking.count({ where: { date: today, status: 'confirmed' } }),
     db.waitlistEntry.count({ where: { status: 'waiting' } }),
     db.booking.count({ where: { date: today, status: 'confirmed' } }),

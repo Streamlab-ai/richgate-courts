@@ -22,7 +22,7 @@ const SPORTS: { key: Sport; label: string; emoji: string; courtType: string }[] 
   { key: 'pickleball',  label: 'Pickleball',  emoji: '🏓', courtType: 'multipurpose' },
 ]
 
-type Step = 'sport' | 'bptl_mode' | 'date' | 'slots' | 'confirm' | 'done'
+type Step = 'sport' | 'tennis_mode' | 'date' | 'slots' | 'confirm' | 'done'
 
 function todayStr() { return new Date().toISOString().slice(0, 10) }
 function addDays(d: string, n: number) {
@@ -60,6 +60,13 @@ function formatBptlSchedule(rules: BptlRule[]): { days: string; hours: string }[
   return lines
 }
 
+// Get the BPTL rule for a specific date
+function getBptlWindow(rules: BptlRule[], date: string): { startTime: string; endTime: string } | null {
+  const dow = new Date(date + 'T00:00:00').getDay()
+  const rule = rules.find(r => r.dayOfWeek === dow)
+  return rule ? { startTime: rule.startTime, endTime: rule.endTime } : null
+}
+
 interface Props {
   memberType: string
   bptlTennisRate: number
@@ -69,6 +76,8 @@ interface Props {
 
 export default function ReserveWizard({ memberType, bptlTennisRate, tennisPricePerHour, bptlTennisSchedule }: Props) {
   const isBptl = memberType === 'bptl'
+  const isHoa  = memberType === 'hoa' || memberType === 'admin' || memberType === 'super_admin'
+  const showTennisMode = isBptl || isHoa  // Both BPTL and HOA see mode selection for tennis
 
   const [step, setStep]               = useState<Step>('sport')
   const [sport, setSport]             = useState<Sport | null>(null)
@@ -105,9 +114,9 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
       .finally(() => setLoading(false))
   }, [court, sport, date])
 
-  // Slots filtered by booking mode (BPTL tennis only)
+  // Slots filtered by booking mode (tennis mode selection)
   const filteredSlots: Slot[] = (() => {
-    if (!isBptl || sport !== 'tennis' || !bookingMode) return slots
+    if (sport !== 'tennis' || !bookingMode || !showTennisMode) return slots
     if (bookingMode === 'bptl_exclusive') return slots.filter(s => s.isBptlSlot)
     return slots.filter(s => !s.isBptlSlot)
   })()
@@ -121,6 +130,12 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
     )
   }
 
+  // Auto-select all available BPTL exclusive slots for the day
+  function selectBptlExclusiveSlots() {
+    const bptlSlots = slots.filter(s => s.isBptlSlot && s.available)
+    setSelected(bptlSlots)
+  }
+
   // Pricing calculations
   const durationMinutes = selected.reduce((acc, s) => {
     const [sh, sm] = s.startTime.split(':').map(Number)
@@ -129,15 +144,18 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
   }, 0)
 
   function getPricing(): { label: string; subtext: string; requiresPayment: boolean } {
-    if (!isBptl) return { label: 'Free', subtext: 'HOA member — no charge', requiresPayment: false }
-    if (sport === 'tennis' && bookingMode === 'bptl_exclusive') {
+    // HOA members: always free
+    if (isHoa) return { label: 'Free', subtext: 'HOA member — no charge', requiresPayment: false }
+    // BPTL exclusive tennis
+    if (isBptl && sport === 'tennis' && bookingMode === 'bptl_exclusive') {
       return {
         label: `₱${bptlTennisRate} / day`,
         subtext: 'Paid once per calendar day — all same-day tennis bookings free after',
         requiresPayment: true,
       }
     }
-    if (sport === 'tennis' && bookingMode === 'standard') {
+    // BPTL standard tennis
+    if (isBptl && sport === 'tennis' && bookingMode === 'standard') {
       const total = Math.round((durationMinutes / 60) * tennisPricePerHour)
       return {
         label: selected.length > 0 ? `₱${total}` : `₱${tennisPricePerHour}/hr`,
@@ -145,7 +163,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
         requiresPayment: true,
       }
     }
-    // Multipurpose (basketball/pickleball)
+    // BPTL multipurpose (basketball/pickleball)
     return { label: 'Pay per hour', subtext: 'Via GCash at checkout', requiresPayment: true }
   }
 
@@ -186,6 +204,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
   }
 
   const bptlScheduleLines = formatBptlSchedule(bptlTennisSchedule)
+  const bptlWindow = getBptlWindow(bptlTennisSchedule, date)
 
   // ── STEP: sport ─────────────────────────────────────────────────────────────
   if (step === 'sport') return (
@@ -216,76 +235,6 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
     </div>
   )
 
-  // ── STEP: bptl_mode (BPTL + tennis only) ────────────────────────────────────
-  if (step === 'bptl_mode') return (
-    <div>
-      <button onClick={() => setStep('date')} className="text-sm text-zinc-500 mb-4">← Back</button>
-      <h1 className="text-2xl font-semibold mb-1">Tennis booking type</h1>
-      <p className="text-zinc-500 text-sm mb-6">As a BPTL member, choose how you'd like to book</p>
-
-      <div className="flex flex-col gap-4">
-
-        {/* Option 1 — BPTL Exclusive */}
-        <button
-          onClick={() => { setBookingMode('bptl_exclusive'); setStep('slots') }}
-          className="text-left bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 hover:border-emerald-400 active:scale-95 transition-all"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <p className="font-semibold text-emerald-900">🎾 BPTL Exclusive Slot</p>
-              <p className="text-xs text-emerald-600 mt-0.5">Reserved for BPTL members only</p>
-            </div>
-            <span className="text-xs bg-emerald-600 text-white px-2 py-1 rounded-lg font-semibold shrink-0 ml-2">
-              ₱{bptlTennisRate}/day
-            </span>
-          </div>
-
-          {bptlScheduleLines.length > 0 ? (
-            <div className="flex flex-col gap-1 mb-3">
-              {bptlScheduleLines.map((line, i) => (
-                <div key={i} className="flex gap-2 text-sm">
-                  <span className="text-emerald-700 font-medium w-20 shrink-0">{line.days}</span>
-                  <span className="text-emerald-800">{line.hours}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-emerald-700 mb-3">Schedule set by admin — view available slots</p>
-          )}
-
-          <p className="text-xs text-emerald-600 bg-emerald-100 rounded-lg px-3 py-2">
-            One-time daily fee · All same-day tennis bookings free after first payment
-          </p>
-        </button>
-
-        {/* Option 2 — Standard Hourly */}
-        <button
-          onClick={() => { setBookingMode('standard'); setStep('slots') }}
-          className="text-left bg-white border-2 border-zinc-200 rounded-2xl p-5 hover:border-zinc-400 active:scale-95 transition-all"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div>
-              <p className="font-semibold text-zinc-900">📅 Standard Booking</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Outside BPTL exclusive hours</p>
-            </div>
-            <span className="text-xs bg-zinc-100 text-zinc-700 px-2 py-1 rounded-lg font-semibold shrink-0 ml-2">
-              ₱{tennisPricePerHour}/hr
-            </span>
-          </div>
-
-          <p className="text-sm text-zinc-600 mb-3">
-            Book during open court hours · Pay per hour
-          </p>
-
-          <p className="text-xs text-zinc-400 bg-zinc-50 rounded-lg px-3 py-2">
-            Same rates as non-members · GCash payment at checkout
-          </p>
-        </button>
-
-      </div>
-    </div>
-  )
-
   // ── STEP: date ──────────────────────────────────────────────────────────────
   if (step === 'date') {
     const dates = Array.from({ length: 7 }, (_, i) => addDays(todayStr(), i))
@@ -302,7 +251,12 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
             return (
               <button
                 key={d}
-                onClick={() => { setDate(d); setStep(isBptl && sport === 'tennis' ? 'bptl_mode' : 'slots') }}
+                onClick={() => {
+                  setDate(d)
+                  setSelected([])
+                  // Tennis for BPTL/HOA → mode selection; otherwise → slots
+                  setStep(showTennisMode && sport === 'tennis' ? 'tennis_mode' : 'slots')
+                }}
                 className={clsx(
                   'flex flex-col items-center py-3 rounded-xl border transition-all',
                   d === date ? 'bg-black text-white border-black' : 'bg-white border-zinc-200 text-zinc-700 hover:border-zinc-400',
@@ -318,6 +272,111 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
     )
   }
 
+  // ── STEP: tennis_mode (BPTL + HOA tennis) ──────────────────────────────────
+  if (step === 'tennis_mode') return (
+    <div>
+      <button onClick={() => setStep('date')} className="text-sm text-zinc-500 mb-4">← Back</button>
+      <h1 className="text-2xl font-semibold mb-1">Tennis booking type</h1>
+      <p className="text-zinc-500 text-sm mb-6">
+        {isBptl ? 'As a BPTL member, choose how you\'d like to book'
+          : 'Choose your preferred court time'}
+      </p>
+
+      <div className="flex flex-col gap-4">
+
+        {/* Option 1 — BPTL Exclusive Time */}
+        <button
+          onClick={() => {
+            setBookingMode('bptl_exclusive')
+            // Auto-select all available BPTL slots — skip to confirm (no slot picking)
+            const bptlSlots = slots.filter(s => s.isBptlSlot && s.available)
+            if (bptlSlots.length > 0) {
+              setSelected(bptlSlots)
+              setStep('confirm')
+            } else {
+              // No BPTL slots available — show empty slots view
+              setSelected([])
+              setStep('slots')
+            }
+          }}
+          className="text-left bg-emerald-50 border-2 border-emerald-200 rounded-2xl p-5 hover:border-emerald-400 active:scale-95 transition-all"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="font-semibold text-emerald-900">🎾 BPTL Exclusive Slot</p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                {isHoa ? 'Members-only tennis hours' : 'Reserved for BPTL members only'}
+              </p>
+            </div>
+            <span className={clsx(
+              'text-xs px-2 py-1 rounded-lg font-semibold shrink-0 ml-2',
+              isHoa ? 'bg-blue-600 text-white' : 'bg-emerald-600 text-white'
+            )}>
+              {isHoa ? 'Free' : `₱${bptlTennisRate}/day`}
+            </span>
+          </div>
+
+          {bptlWindow && (
+            <div className="flex gap-2 text-sm mb-3">
+              <span className="text-emerald-800 font-medium">
+                {fmtTime(bptlWindow.startTime)} – {fmtTime(bptlWindow.endTime)}
+              </span>
+            </div>
+          )}
+
+          {bptlScheduleLines.length > 0 ? (
+            <div className="flex flex-col gap-1 mb-3">
+              {bptlScheduleLines.map((line, i) => (
+                <div key={i} className="flex gap-2 text-xs text-emerald-600">
+                  <span className="font-medium w-20 shrink-0">{line.days}</span>
+                  <span>{line.hours}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-emerald-700 mb-3">Schedule set by admin</p>
+          )}
+
+          <p className="text-xs text-emerald-600 bg-emerald-100 rounded-lg px-3 py-2">
+            {isHoa
+              ? 'Free for HOA members — book the full exclusive time block'
+              : 'One-time daily fee · All same-day tennis bookings free after first payment'}
+          </p>
+        </button>
+
+        {/* Option 2 — Standard Hourly */}
+        <button
+          onClick={() => { setBookingMode('standard'); setSelected([]); setStep('slots') }}
+          className="text-left bg-white border-2 border-zinc-200 rounded-2xl p-5 hover:border-zinc-400 active:scale-95 transition-all"
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="font-semibold text-zinc-900">📅 Standard Booking</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Outside exclusive hours</p>
+            </div>
+            <span className={clsx(
+              'text-xs px-2 py-1 rounded-lg font-semibold shrink-0 ml-2',
+              isHoa ? 'bg-blue-100 text-blue-700' : 'bg-zinc-100 text-zinc-700'
+            )}>
+              {isHoa ? 'Free' : `₱${tennisPricePerHour}/hr`}
+            </span>
+          </div>
+
+          <p className="text-sm text-zinc-600 mb-3">
+            Book during open court hours · Pick your time slots
+          </p>
+
+          <p className="text-xs text-zinc-400 bg-zinc-50 rounded-lg px-3 py-2">
+            {isHoa
+              ? 'Free for HOA members — select any available open court slot'
+              : 'Same rates as non-members · GCash payment at checkout'}
+          </p>
+        </button>
+
+      </div>
+    </div>
+  )
+
   // ── STEP: slots ─────────────────────────────────────────────────────────────
   if (step === 'slots') {
     const modeLabel = bookingMode === 'bptl_exclusive' ? 'BPTL Exclusive'
@@ -325,7 +384,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
       : null
     return (
       <div>
-        <button onClick={() => setStep(isBptl && sport === 'tennis' ? 'bptl_mode' : 'date')} className="text-sm text-zinc-500 mb-4">← Back</button>
+        <button onClick={() => setStep(showTennisMode && sport === 'tennis' ? 'tennis_mode' : 'date')} className="text-sm text-zinc-500 mb-4">← Back</button>
         <h1 className="text-2xl font-semibold mb-1">Select time slots</h1>
         <p className="text-zinc-500 text-sm mb-4">
           {sport} · {date}
@@ -342,7 +401,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
             <p className="text-3xl mb-3">📭</p>
             <p className="text-sm">
               {bookingMode === 'bptl_exclusive'
-                ? 'No BPTL exclusive slots on this date'
+                ? 'No exclusive slots available on this date'
                 : bookingMode === 'standard'
                   ? 'No standard slots available on this date'
                   : 'No slots available for this date'}
@@ -404,53 +463,92 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
   // ── STEP: confirm ────────────────────────────────────────────────────────────
   if (step === 'confirm') {
     const pricing = getPricing()
+    const isBptlExclusive = bookingMode === 'bptl_exclusive'
+
     return (
       <div>
-        <button onClick={() => setStep('slots')} className="text-sm text-zinc-500 mb-4">← Back</button>
+        <button onClick={() => {
+          if (isBptlExclusive) {
+            setSelected([])
+            setStep('tennis_mode')
+          } else {
+            setStep('slots')
+          }
+        }} className="text-sm text-zinc-500 mb-4">← Back</button>
         <h1 className="text-2xl font-semibold mb-1">Confirm booking</h1>
         <p className="text-zinc-500 text-sm mb-6">{court?.name} · {sport}</p>
 
-        <div className="flex flex-col gap-2 mb-5">
-          {selected.map(s => (
-            <Card key={s.startTime + s.date}>
-              <CardContent className="pt-4">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium text-sm">{s.date}</p>
-                    <p className="text-xs text-zinc-500">{s.startTime} – {s.endTime}</p>
-                  </div>
-                  <button onClick={() => toggleSlot(s)} className="text-xs text-red-500">Remove</button>
+        {/* BPTL Exclusive: show single time block instead of individual slots */}
+        {isBptlExclusive && bptlWindow && selected.length > 0 ? (
+          <Card className="mb-5">
+            <CardContent className="pt-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium text-sm">{date}</p>
+                  <p className="text-xs text-zinc-500">
+                    {fmtTime(bptlWindow.startTime)} – {fmtTime(bptlWindow.endTime)}
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-1 font-medium">
+                    BPTL Exclusive Access · {selected.length} slot{selected.length > 1 ? 's' : ''}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">
+                  Exclusive
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-col gap-2 mb-5">
+            {selected.map(s => (
+              <Card key={s.startTime + s.date}>
+                <CardContent className="pt-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-sm">{s.date}</p>
+                      <p className="text-xs text-zinc-500">{s.startTime} – {s.endTime}</p>
+                    </div>
+                    <button onClick={() => toggleSlot(s)} className="text-xs text-red-500">Remove</button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Pricing summary */}
         <div className={clsx(
           'mb-5 px-4 py-3 rounded-xl border',
-          bookingMode === 'bptl_exclusive' ? 'bg-emerald-50 border-emerald-200'
+          isBptlExclusive ? 'bg-emerald-50 border-emerald-200'
+            : isHoa ? 'bg-blue-50 border-blue-200'
             : isBptl ? 'bg-zinc-50 border-zinc-200'
-            : memberType === 'hoa' ? 'bg-blue-50 border-blue-200'
             : 'bg-zinc-50 border-zinc-200'
         )}>
           <div className="flex justify-between items-start">
             <div>
               <p className={clsx('text-xs font-semibold mb-0.5',
-                bookingMode === 'bptl_exclusive' ? 'text-emerald-700' : 'text-zinc-600'
+                isBptlExclusive ? 'text-emerald-700'
+                  : isHoa ? 'text-blue-700'
+                  : 'text-zinc-600'
               )}>
-                {bookingMode === 'bptl_exclusive' ? 'BPTL Daily Access Fee'
-                  : bookingMode === 'standard' ? 'Standard Rate'
-                  : memberType === 'hoa' ? 'HOA Member' : 'Pricing'}
+                {isBptlExclusive
+                  ? (isHoa ? 'HOA Member — Exclusive Access' : 'BPTL Daily Access Fee')
+                  : bookingMode === 'standard'
+                    ? (isHoa ? 'HOA Member' : 'Standard Rate')
+                    : isHoa ? 'HOA Member' : 'Pricing'}
               </p>
               <p className={clsx('text-sm',
-                bookingMode === 'bptl_exclusive' ? 'text-emerald-800' : 'text-zinc-700'
+                isBptlExclusive ? 'text-emerald-800'
+                  : isHoa ? 'text-blue-800'
+                  : 'text-zinc-700'
               )}>
                 {pricing.subtext}
               </p>
             </div>
             <p className={clsx('text-lg font-bold shrink-0 ml-3',
-              bookingMode === 'bptl_exclusive' ? 'text-emerald-700' : 'text-zinc-800'
+              isBptlExclusive ? 'text-emerald-700'
+                : isHoa ? 'text-blue-700'
+                : 'text-zinc-800'
             )}>
               {pricing.label}
             </p>
@@ -494,7 +592,7 @@ export default function ReserveWizard({ memberType, bptlTennisRate, tennisPriceP
         </div>
       )}
       <div className="flex gap-3 mt-8">
-        <Button variant="secondary" onClick={() => { setStep('sport'); setSport(null); setSelected([]) }}>
+        <Button variant="secondary" onClick={() => { setStep('sport'); setSport(null); setSelected([]); setBookingMode(null) }}>
           Book another
         </Button>
         <Button onClick={() => window.location.href = '/reservations'}>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { hash } from '@node-rs/bcrypt'
 import { db } from '@/lib/db'
 import { createSession } from '@/lib/session'
 
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const passwordHash = await bcrypt.hash(password, 12)
+    const passwordHash = await hash(password, 12)
 
     const profile = await db.profile.create({
       data: {

@@ -3,7 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { jwtVerify } from 'jose'
-import bcrypt from 'bcryptjs'
+import { hash } from '@node-rs/bcrypt'
 import { db } from '@/lib/db'
 
 function getSecret(): Uint8Array {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account not found' }, { status: 404 })
     }
 
-    const passwordHash = await bcrypt.hash(password, 12)
+    const passwordHash = await hash(password, 12)
     await db.profile.update({
       where: { id: payload.sub },
       data: { passwordHash },

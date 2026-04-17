@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
-import bcrypt from 'bcryptjs'
+import { hash } from '@node-rs/bcrypt'
 
 export async function PATCH(
   request: NextRequest,
@@ -50,7 +50,7 @@ export async function PATCH(
   if (phone !== undefined) data.phone = phone || null
   if (status && !targetIsSuperAdmin) data.status = status
   if (role   && !targetIsSuperAdmin) data.role   = role
-  if (password)            data.passwordHash = await bcrypt.hash(password, 12)
+  if (password)            data.passwordHash = await hash(password, 12)
 
   const updated = await db.profile.update({ where: { id }, data })
   return NextResponse.json({ ok: true, member: updated })

@@ -2,7 +2,7 @@ import { requireAdmin } from '@/lib/auth'
 import { db } from '@/lib/db'
 import { Card, CardContent } from '@/components/ui/card'
 import { statusBadge } from '@/components/ui/badge'
-import AdminCancelButton from './AdminCancelButton'
+import AdminBookingActions from './AdminBookingActions'
 import CreateReservationForm from './CreateReservationForm'
 
 export default async function AdminBookingsPage({
@@ -85,7 +85,7 @@ export default async function AdminBookingsPage({
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     {statusBadge(b.status)}
-                    {b.status === 'confirmed' && <AdminCancelButton bookingId={b.id} />}
+                    <AdminBookingActions bookingId={b.id} status={b.status} />
                   </div>
                 </div>
               </CardContent>

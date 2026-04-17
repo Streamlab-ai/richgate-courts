@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/lib/session'
 import { db } from '@/lib/db'
-import bcrypt from 'bcryptjs'
+import { hash } from '@node-rs/bcrypt'
 
 export async function GET(request: NextRequest) {
   const session = await getSession()
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   const nextNum = last?.memberId ? parseInt(last.memberId.replace('RG-', '')) + 1 : 1
   const memberId = `RG-${String(nextNum).padStart(6, '0')}`
 
-  const passwordHash = await bcrypt.hash(password, 12)
+  const passwordHash = await hash(password, 12)
 
   const resolvedRole = role ?? 'hoa'
 

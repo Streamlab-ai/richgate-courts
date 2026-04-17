@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
+import { compare } from '@node-rs/bcrypt'
 import { db } from '@/lib/db'
 import { createSession } from '@/lib/session'
 
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
     // Constant-time compare to prevent timing attacks
     const dummyHash = '$2a$12$dummyhashfortimingprotection000000000000000000000000000'
     const valid = profile
-      ? await bcrypt.compare(password, profile.passwordHash)
-      : await bcrypt.compare(password, dummyHash)
+      ? await compare(password, profile.passwordHash)
+      : await compare(password, dummyHash)
 
     if (!profile || !valid) {
       return NextResponse.json(

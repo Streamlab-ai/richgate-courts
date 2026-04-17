@@ -161,24 +161,24 @@ async function main() {
   }
 
   // ── HOA Demo Member ─────────────────────────────────────────────────────────
-  const memberEmail = 'member@richgate.local'
-  const existingMember = await db.profile.findUnique({ where: { email: memberEmail } })
+  const hoaDemoEmail = 'hoa-demo@richgate.local'
+  const existingHoa = await db.profile.findUnique({ where: { email: hoaDemoEmail } })
 
-  if (!existingMember) {
-    const passwordHash = await hash('Member1234!', 12)
+  if (!existingHoa) {
+    const passwordHash = await hash('demo1234', 12)
     await db.profile.create({
       data: {
-        email: memberEmail,
+        email: hoaDemoEmail,
         passwordHash,
-        fullName: 'Jane Smith',
+        fullName: 'HOA Demo Member',
         role: 'hoa',
         status: 'active',
         memberId: 'RG-000003',
       },
     })
-    console.log('✅ HOA demo member created — member@richgate.local / Member1234!')
+    console.log('✅ HOA demo created — hoa-demo@richgate.local / demo1234')
   } else {
-    console.log('⏭  HOA demo member already exists')
+    console.log('⏭  HOA demo already exists')
   }
 
   // ── BPTL Demo Member ────────────────────────────────────────────────────────

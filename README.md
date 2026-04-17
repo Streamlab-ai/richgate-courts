@@ -39,7 +39,7 @@ Open **http://localhost:3000**
 |--------------|------------------------------|---------------|
 | Super Admin  | superadmin@richgate.local    | Admin1234!    |
 | Admin        | admin-demo@richgate.local    | admin1234     |
-| HOA Member   | member@richgate.local        | Member1234!   |
+| HOA Member   | hoa-demo@richgate.local      | demo1234      |
 | BPTL Member  | bptl-demo@richgate.local     | bptl1234      |
 | Guard        | guard@richgate.local         | guard1234     |
 

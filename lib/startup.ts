@@ -254,11 +254,29 @@ export async function runStartup() {
     }
   })
 
-  // ── 18. Ensure HOA demo account (member@richgate.local) has correct role ─────
-  await step('ensure hoa demo role', async () => {
-    const exists = await db.profile.findUnique({ where: { email: 'member@richgate.local' } })
-    if (exists && exists.role !== 'hoa' && exists.role !== 'admin' && exists.role !== 'super_admin') {
-      await db.profile.update({ where: { email: 'member@richgate.local' }, data: { role: 'hoa' } })
+  // ── 18. Ensure HOA demo account (hoa-demo@richgate.local) exists ──────────────
+  await step('ensure hoa demo account', async () => {
+    const exists = await db.profile.findUnique({ where: { email: 'hoa-demo@richgate.local' } })
+    if (!exists) {
+      const pw = await hash('demo1234', 12)
+      const last = await db.profile.findFirst({
+        where: { memberId: { not: null } },
+        orderBy: { memberId: 'desc' },
+      })
+      const nextNum = last?.memberId ? parseInt(last.memberId.replace('RG-', '')) + 1 : 2
+      const memberId = `RG-${String(nextNum).padStart(6, '0')}`
+      await db.profile.create({
+        data: {
+          email: 'hoa-demo@richgate.local',
+          passwordHash: pw,
+          fullName: 'HOA Demo Member',
+          role: 'hoa',
+          status: 'active',
+          memberId,
+        },
+      })
+    } else if (exists.role !== 'hoa' && exists.role !== 'admin' && exists.role !== 'super_admin') {
+      await db.profile.update({ where: { email: 'hoa-demo@richgate.local' }, data: { role: 'hoa' } })
     }
   })
 
